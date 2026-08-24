@@ -1,0 +1,60 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id            String      @id @default(uuid())
+  email         String      @unique
+  password_hash String
+  role          Role        @default(USER)
+  status        String      @default("active") // active, suspended, pending
+  totp_secret   String?
+  created_at    DateTime    @default(now())
+  feed_fetches  FeedFetch[]
+
+  @@map("users")
+}
+
+model ActivityLog {
+  id           String   @id @default(uuid())
+  actor_id     String
+  actor_type   String   // e.g. "USER", "ADMIN", "SYSTEM"
+  action_type  String   // e.g. "LOGIN", "CLASSIFY", "USER_MANAGEMENT"
+  details_json Json     // custom metadata
+  timestamp    DateTime @default(now())
+
+  @@map("activity_logs")
+}
+
+model FeedFetch {
+  id              String           @id @default(uuid())
+  user_id         String
+  user            User             @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  fetched_at      DateTime         @default(now())
+  classifications Classification[]
+
+  @@map("feed_fetches")
+}
+
+model Classification {
+  id                 String    @id @default(uuid())
+  fetch_id           String
+  feed_fetch         FeedFetch @relation(fields: [fetch_id], references: [id], onDelete: Cascade)
+  comment_text       String
+  label              String    // toxic, normal
+  subcategories_json Json      // details of subcategories
+  confidence         Float
+  timestamp          DateTime  @default(now())
+
+  @@map("classifications")
+}

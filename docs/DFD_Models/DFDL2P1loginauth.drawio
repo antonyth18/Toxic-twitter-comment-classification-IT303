@@ -1,0 +1,69 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Page-1" id="FG3hWOJS42YBs41eSbEq">
+    <mxGraphModel dx="2062" dy="620" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="YqbHlwUyYRG7lVyOQdi5-7" edge="1" parent="1" source="jXwnHyiBKaHyNGmAdWdU-3" style="edgeStyle=none;shape=connector;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.25;entryY=0;entryDx=0;entryDy=0;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=light-dark(#000000,#000000);labelBackgroundColor=default;endArrow=classic;endFill=1;" target="jXwnHyiBKaHyNGmAdWdU-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="jXwnHyiBKaHyNGmAdWdU-3" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="0.1.1&lt;br&gt;Register Account" vertex="1">
+          <mxGeometry height="80" width="120" x="-780" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="YqbHlwUyYRG7lVyOQdi5-8" edge="1" parent="1" source="jXwnHyiBKaHyNGmAdWdU-4" style="edgeStyle=none;shape=connector;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.75;entryY=0;entryDx=0;entryDy=0;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=light-dark(#000000,#000000);labelBackgroundColor=default;endArrow=classic;endFill=1;" target="jXwnHyiBKaHyNGmAdWdU-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="jXwnHyiBKaHyNGmAdWdU-4" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="0.1.2&lt;br&gt;Authenticate Credentials" vertex="1">
+          <mxGeometry height="80" width="120" x="-620" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="YqbHlwUyYRG7lVyOQdi5-2" edge="1" parent="1" source="jXwnHyiBKaHyNGmAdWdU-5" style="edgeStyle=none;shape=connector;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=0.5;exitY=1;exitDx=0;exitDy=0;entryX=0.5;entryY=0;entryDx=0;entryDy=0;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=light-dark(#000000,#000000);labelBackgroundColor=default;endArrow=none;endFill=0;" target="jXwnHyiBKaHyNGmAdWdU-6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="jXwnHyiBKaHyNGmAdWdU-5" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="0.1.3&lt;br&gt;Generate &amp;amp; send 2FA code" vertex="1">
+          <mxGeometry height="80" width="120" x="-390" y="410" as="geometry" />
+        </mxCell>
+        <mxCell id="jXwnHyiBKaHyNGmAdWdU-6" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="0.1.4&lt;br&gt;Verify 2FA code" vertex="1">
+          <mxGeometry height="80" width="120" x="-390" y="590" as="geometry" />
+        </mxCell>
+        <mxCell id="jXwnHyiBKaHyNGmAdWdU-8" parent="1" style="shape=partialRectangle;html=1;whiteSpace=wrap;top=1;bottom=1;left=0;right=0;fillColor=#fad7ac;strokeColor=#b46504;" value="User/Admin Accounts" vertex="1">
+          <mxGeometry height="80" width="155" x="-730" y="560" as="geometry" />
+        </mxCell>
+        <mxCell id="jXwnHyiBKaHyNGmAdWdU-25" edge="1" parent="1" source="jXwnHyiBKaHyNGmAdWdU-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="jXwnHyiBKaHyNGmAdWdU-5">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="-540" y="480" />
+            </Array>
+            <mxPoint x="-540" y="540" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="jXwnHyiBKaHyNGmAdWdU-26" connectable="0" parent="jXwnHyiBKaHyNGmAdWdU-25" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="trigger 2FA" vertex="1">
+          <mxGeometry relative="1" x="-0.1206" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="YqbHlwUyYRG7lVyOQdi5-3" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=light-dark(#000000,#000000);labelBackgroundColor=default;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="jXwnHyiBKaHyNGmAdWdU-4" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="-560" y="320" as="sourcePoint" />
+            <mxPoint x="-510" y="270" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="YqbHlwUyYRG7lVyOQdi5-4" connectable="0" parent="YqbHlwUyYRG7lVyOQdi5-3" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=12;fontColor=light-dark(#000000,#000000);labelBackgroundColor=default;" value="&lt;span style=&quot;color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;login-credentials&lt;/span&gt;" vertex="1">
+          <mxGeometry relative="1" x="-0.0013" y="2" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="YqbHlwUyYRG7lVyOQdi5-5" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=light-dark(#000000,#000000);labelBackgroundColor=default;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="-710.59" y="320" as="sourcePoint" />
+            <mxPoint x="-710.59" y="410" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="YqbHlwUyYRG7lVyOQdi5-6" connectable="0" parent="YqbHlwUyYRG7lVyOQdi5-5" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=12;fontColor=light-dark(#000000,#000000);labelBackgroundColor=default;" value="&lt;span style=&quot;color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;registration-details&lt;/span&gt;" vertex="1">
+          <mxGeometry relative="1" x="-0.0013" y="2" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

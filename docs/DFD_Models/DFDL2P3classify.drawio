@@ -1,0 +1,94 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Page-1" id="JZMcLvgsBcGU_9a_PXml">
+    <mxGraphModel dx="1373" dy="703" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="TIARnNylwdCrsQzAlqmr-9" edge="1" parent="1" source="TIARnNylwdCrsQzAlqmr-1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="TIARnNylwdCrsQzAlqmr-2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="TIARnNylwdCrsQzAlqmr-10" connectable="0" parent="TIARnNylwdCrsQzAlqmr-9" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="raw comment text" vertex="1">
+          <mxGeometry relative="1" x="-0.05" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="TIARnNylwdCrsQzAlqmr-1" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#e1d5e7;strokeColor=#9673a6;dashed=1;" value="0.2.1&lt;br&gt;Fetch feed comments" vertex="1">
+          <mxGeometry height="80" width="120" x="365" y="120" as="geometry" />
+        </mxCell>
+        <mxCell id="TIARnNylwdCrsQzAlqmr-11" edge="1" parent="1" source="TIARnNylwdCrsQzAlqmr-2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="TIARnNylwdCrsQzAlqmr-3" value="">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="TIARnNylwdCrsQzAlqmr-12" connectable="0" parent="TIARnNylwdCrsQzAlqmr-11" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="cleaned/ tokenized text" vertex="1">
+          <mxGeometry relative="1" x="-0.25" y="3" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="TIARnNylwdCrsQzAlqmr-2" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="0.3.1&lt;br&gt;Preprocess Comment Text" vertex="1">
+          <mxGeometry height="80" width="120" x="365" y="240" as="geometry" />
+        </mxCell>
+        <mxCell id="TIARnNylwdCrsQzAlqmr-13" edge="1" parent="1" source="TIARnNylwdCrsQzAlqmr-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="TIARnNylwdCrsQzAlqmr-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="TIARnNylwdCrsQzAlqmr-14" connectable="0" parent="TIARnNylwdCrsQzAlqmr-13" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="raw model output" vertex="1">
+          <mxGeometry relative="1" x="-0.35" y="1" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="TIARnNylwdCrsQzAlqmr-3" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="0.3.2&lt;br&gt;Run toxicity model" vertex="1">
+          <mxGeometry height="80" width="120" x="365" y="360" as="geometry" />
+        </mxCell>
+        <mxCell id="TIARnNylwdCrsQzAlqmr-15" edge="1" parent="1" source="TIARnNylwdCrsQzAlqmr-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="TIARnNylwdCrsQzAlqmr-5">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="425" y="590" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="TIARnNylwdCrsQzAlqmr-16" connectable="0" parent="TIARnNylwdCrsQzAlqmr-15" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="classification + subcategory + scores" vertex="1">
+          <mxGeometry relative="1" x="-0.1" y="-3" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="TIARnNylwdCrsQzAlqmr-4" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="0.3.3&lt;br&gt;Determine subcategory &amp;amp; toxicity score" vertex="1">
+          <mxGeometry height="80" width="120" x="365" y="480" as="geometry" />
+        </mxCell>
+        <mxCell id="TIARnNylwdCrsQzAlqmr-19" edge="1" parent="1" source="TIARnNylwdCrsQzAlqmr-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.442;entryY=0;entryDx=0;entryDy=0;entryPerimeter=0;" target="TIARnNylwdCrsQzAlqmr-7">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="210" y="640" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="TIARnNylwdCrsQzAlqmr-20" connectable="0" parent="TIARnNylwdCrsQzAlqmr-19" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="classification feed" vertex="1">
+          <mxGeometry relative="1" x="-0.1901" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="TIARnNylwdCrsQzAlqmr-5" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="0.3.4&lt;br&gt;Format &amp;amp; return result" vertex="1">
+          <mxGeometry height="80" width="120" x="365" y="600" as="geometry" />
+        </mxCell>
+        <mxCell id="TIARnNylwdCrsQzAlqmr-6" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#e1d5e7;strokeColor=#9673a6;dashed=1;" value="0.4.1&lt;br&gt;Log Activity" vertex="1">
+          <mxGeometry height="80" width="120" x="360" y="720" as="geometry" />
+        </mxCell>
+        <mxCell id="TIARnNylwdCrsQzAlqmr-7" parent="1" style="rounded=0;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="User" vertex="1">
+          <mxGeometry height="60" width="120" x="160" y="730" as="geometry" />
+        </mxCell>
+        <mxCell id="TIARnNylwdCrsQzAlqmr-8" parent="1" style="shape=partialRectangle;html=1;whiteSpace=wrap;top=1;bottom=1;left=0;right=0;fillColor=#fad7ac;strokeColor=#b46504;" value="D2&lt;br&gt;Classification records" vertex="1">
+          <mxGeometry height="80" width="170" x="560" y="720" as="geometry" />
+        </mxCell>
+        <mxCell id="TIARnNylwdCrsQzAlqmr-17" edge="1" parent="1" source="TIARnNylwdCrsQzAlqmr-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="TIARnNylwdCrsQzAlqmr-6">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="420" y="690" />
+              <mxPoint x="420" y="690" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="TIARnNylwdCrsQzAlqmr-18" connectable="0" parent="TIARnNylwdCrsQzAlqmr-17" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="classification event" vertex="1">
+          <mxGeometry relative="1" x="-0.0399" y="2" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="TIARnNylwdCrsQzAlqmr-21" edge="1" parent="1" source="TIARnNylwdCrsQzAlqmr-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.459;entryY=-0.05;entryDx=0;entryDy=0;entryPerimeter=0;" target="TIARnNylwdCrsQzAlqmr-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: toxic_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: toxic_comments
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  classifier-service:
+    build:
+      context: ./classifier-service
+      dockerfile: Dockerfile
+    container_name: toxic_classifier
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+    volumes:
+      - ./classifier-service:/app
+      - /app/__pycache__
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: toxic_backend
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - PORT=5000
+      - DATABASE_URL=postgresql://postgres:password@db:5432/toxic_comments?schema=public
+      - JWT_SECRET=super_secret_jwt_key_123!
+      - CLASSIFIER_SERVICE_URL=http://classifier-service:8000
+    depends_on:
+      - db
+      - classifier-service
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  web-client:
+    build:
+      context: ./web-client
+      dockerfile: Dockerfile
+    container_name: toxic_web_client
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://localhost:5000
+    depends_on:
+      - backend
+    volumes:
+      - ./web-client:/app
+      - /app/node_modules
+
+volumes:
+  postgres_data:

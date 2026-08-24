@@ -1,0 +1,61 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Page-1" id="cLgXuFlvFFJ3ZqeXOPn1">
+    <mxGraphModel dx="1030" dy="527" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="wDcxdo52JjbIJAww3l1W-9" edge="1" parent="1" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" target="wDcxdo52JjbIJAww3l1W-5">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="182.42640687119297" y="188.2842712474619" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wDcxdo52JjbIJAww3l1W-16" connectable="0" parent="wDcxdo52JjbIJAww3l1W-9" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="login/registration&lt;div&gt;event&lt;/div&gt;" vertex="1">
+          <mxGeometry relative="1" x="-0.175" y="-2" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wDcxdo52JjbIJAww3l1W-10" edge="1" parent="1" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="wDcxdo52JjbIJAww3l1W-5">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="362.8525498701931" y="196.98504781623342" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wDcxdo52JjbIJAww3l1W-17" connectable="0" parent="wDcxdo52JjbIJAww3l1W-10" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="feed fetch event" vertex="1">
+          <mxGeometry relative="1" x="-0.262" y="1" as="geometry">
+            <mxPoint y="-1" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wDcxdo52JjbIJAww3l1W-11" edge="1" parent="1" style="rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="wDcxdo52JjbIJAww3l1W-5">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="517.1474501298069" y="196.98504781623387" as="sourcePoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wDcxdo52JjbIJAww3l1W-18" connectable="0" parent="wDcxdo52JjbIJAww3l1W-11" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" value="classification&lt;div&gt;event&lt;/div&gt;" vertex="1">
+          <mxGeometry relative="1" x="-0.1098" y="-2" as="geometry">
+            <mxPoint x="-1" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="wDcxdo52JjbIJAww3l1W-13" edge="1" parent="1" source="wDcxdo52JjbIJAww3l1W-5" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="wDcxdo52JjbIJAww3l1W-6" value="raw event data">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="wDcxdo52JjbIJAww3l1W-5" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="0.4.1&lt;br&gt;Capture event details" vertex="1">
+          <mxGeometry height="80" width="120" x="380" y="280" as="geometry" />
+        </mxCell>
+        <mxCell id="wDcxdo52JjbIJAww3l1W-14" edge="1" parent="1" source="wDcxdo52JjbIJAww3l1W-6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" target="wDcxdo52JjbIJAww3l1W-7" value="formatted log entry">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="wDcxdo52JjbIJAww3l1W-6" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="0.4.2&lt;br&gt;Timestamp &amp;amp; format Log entry" vertex="1">
+          <mxGeometry height="80" width="120" x="380" y="400" as="geometry" />
+        </mxCell>
+        <mxCell id="wDcxdo52JjbIJAww3l1W-7" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="0.4.3&lt;br&gt;Persist Log Entry" vertex="1">
+          <mxGeometry height="80" width="120" x="380" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="wDcxdo52JjbIJAww3l1W-8" parent="1" style="shape=partialRectangle;html=1;whiteSpace=wrap;top=1;bottom=1;left=0;right=0;fillColor=#fad7ac;strokeColor=#b46504;" value="D3 Activity Log" vertex="1">
+          <mxGeometry height="80" width="130" x="600" y="520" as="geometry" />
+        </mxCell>
+        <mxCell id="wDcxdo52JjbIJAww3l1W-15" edge="1" parent="1" source="wDcxdo52JjbIJAww3l1W-7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;entryPerimeter=0;" target="wDcxdo52JjbIJAww3l1W-8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

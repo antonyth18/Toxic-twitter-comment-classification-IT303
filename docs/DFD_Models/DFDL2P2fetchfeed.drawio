@@ -1,0 +1,46 @@
+<mxfile host="app.diagrams.net">
+  <diagram name="Page-1" id="JZMcLvgsBcGU_9a_PXml">
+    <mxGraphModel dx="1144" dy="586" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="pMEXA3Uy4aeBTWHhkOs7-1" edge="1" parent="1" source="1JHFv6A70IlIJVpjlPiX-3" style="edgeStyle=none;shape=connector;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=light-dark(#000000,#000000);labelBackgroundColor=default;endArrow=classic;endFill=1;" target="1JHFv6A70IlIJVpjlPiX-4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="pMEXA3Uy4aeBTWHhkOs7-2" connectable="0" parent="pMEXA3Uy4aeBTWHhkOs7-1" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=12;fontColor=light-dark(#000000,#000000);labelBackgroundColor=default;" value="&lt;span style=&quot;color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;initiate API call&lt;/span&gt;" vertex="1">
+          <mxGeometry relative="1" x="0.196" y="-3" as="geometry">
+            <mxPoint x="-11" y="-3" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="1JHFv6A70IlIJVpjlPiX-3" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="0.2.1&lt;br&gt;Receive Fetch Requests" vertex="1">
+          <mxGeometry height="80" width="120" x="110" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="pMEXA3Uy4aeBTWHhkOs7-6" edge="1" parent="1" source="1JHFv6A70IlIJVpjlPiX-4" style="edgeStyle=none;shape=connector;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=light-dark(#000000,#000000);labelBackgroundColor=default;endArrow=classic;endFill=1;" target="1JHFv6A70IlIJVpjlPiX-5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="pMEXA3Uy4aeBTWHhkOs7-9" connectable="0" parent="pMEXA3Uy4aeBTWHhkOs7-6" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=12;fontColor=light-dark(#000000,#000000);labelBackgroundColor=default;" value="&lt;span style=&quot;color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;raw API response&lt;/span&gt;" vertex="1">
+          <mxGeometry relative="1" x="-0.0116" y="-4" as="geometry">
+            <mxPoint y="-4" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="1JHFv6A70IlIJVpjlPiX-4" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="0.2.2&lt;br&gt;Call Twitter/X API" vertex="1">
+          <mxGeometry height="80" width="120" x="380" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="1JHFv6A70IlIJVpjlPiX-5" parent="1" style="ellipse;whiteSpace=wrap;html=1;shapeInside=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="0.2.3&lt;br&gt;Parse &amp;amp; Queue Comments" vertex="1">
+          <mxGeometry height="80" width="120" x="630" y="210" as="geometry" />
+        </mxCell>
+        <mxCell id="pMEXA3Uy4aeBTWHhkOs7-4" edge="1" parent="1" style="endArrow=classic;html=1;rounded=0;strokeColor=default;align=center;verticalAlign=middle;fontFamily=Helvetica;fontSize=12;fontColor=light-dark(#000000,#000000);labelBackgroundColor=default;entryX=0.5;entryY=0;entryDx=0;entryDy=0;" target="1JHFv6A70IlIJVpjlPiX-3" value="">
+          <mxGeometry height="50" relative="1" width="50" as="geometry">
+            <mxPoint x="170" y="120" as="sourcePoint" />
+            <mxPoint x="210" y="70" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="pMEXA3Uy4aeBTWHhkOs7-5" connectable="0" parent="pMEXA3Uy4aeBTWHhkOs7-4" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];fontFamily=Helvetica;fontSize=12;fontColor=light-dark(#000000,#000000);labelBackgroundColor=default;" value="&lt;span style=&quot;color: light-dark(rgb(0, 0, 0), rgb(255, 255, 255));&quot;&gt;fetch-feed requests&lt;/span&gt;" vertex="1">
+          <mxGeometry relative="1" x="-0.0025" y="2" as="geometry">
+            <mxPoint as="offset" />
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
