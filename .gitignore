@@ -30,6 +30,7 @@ build/
 classifier-service/data/raw/*
 !classifier-service/data/raw/.gitkeep
 classifier-service/data/processed/
+classifier-service/data/tokenized/
 classifier-service/tokenizer/
 
 # IDE and OS files
