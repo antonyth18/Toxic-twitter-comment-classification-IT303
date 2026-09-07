@@ -32,6 +32,8 @@ classifier-service/data/raw/*
 classifier-service/data/processed/
 classifier-service/data/tokenized/
 classifier-service/tokenizer/
+classifier-service/model/checkpoints/
+classifier-service/model/distilbert-toxic/
 
 # IDE and OS files
 .idea/
