@@ -26,6 +26,12 @@ env/
 dist/
 build/
 
+# Classifier dataset artifacts (raw data, processed splits, tokenizer cache)
+classifier-service/data/raw/*
+!classifier-service/data/raw/.gitkeep
+classifier-service/data/processed/
+classifier-service/tokenizer/
+
 # IDE and OS files
 .idea/
 .vscode/
