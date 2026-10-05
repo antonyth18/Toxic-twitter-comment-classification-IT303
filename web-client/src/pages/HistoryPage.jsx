@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import client from '../api/client';
 import { 
   ShieldAlert, 
   History as HistoryIcon, 
@@ -17,7 +18,8 @@ import {
   Calendar,
   Layers,
   Flame,
-  Radio
+  Radio,
+  RefreshCw
 } from 'lucide-react';
 
 // Subcategory tag chip configurations matching exact classifier labels
@@ -45,131 +47,6 @@ const SUBCATEGORY_CONFIG = {
   },
 };
 
-// Hardcoded placeholder data: chronological past feed fetches
-const PLACEHOLDER_FETCH_HISTORY = [
-  {
-    id: 'fetch-001',
-    timestamp: '2026-10-03T18:42:00.000Z',
-    summary: '5 comments fetched, 2 flagged toxic',
-    totalComments: 5,
-    toxicCount: 2,
-    normalCount: 3,
-    comments: [
-      {
-        text: "Shut up you stupid idiot, nobody asked for your trash opinion. Go delete your account.",
-        label: "toxic",
-        subcategories: ["insult"],
-        confidence: 0.942,
-        timestamp: "2026-10-03T18:42:01.000Z"
-      },
-      {
-        text: "Just finished reading the new AI research paper, incredible advancements being made this year!",
-        label: "normal",
-        subcategories: [],
-        confidence: 0.968,
-        timestamp: "2026-10-03T18:42:02.000Z"
-      },
-      {
-        text: "I know exactly where you live and I will find you and make you regret ever posting this.",
-        label: "toxic",
-        subcategories: ["threat"],
-        confidence: 0.985,
-        timestamp: "2026-10-03T18:42:03.000Z"
-      },
-      {
-        text: "Loved the live concert tonight, the acoustic performance was absolutely wonderful and inspiring!",
-        label: "normal",
-        subcategories: [],
-        confidence: 0.975,
-        timestamp: "2026-10-03T18:42:04.000Z"
-      },
-      {
-        text: "Excited to collaborate with our new open source contributors across the globe.",
-        label: "normal",
-        subcategories: [],
-        confidence: 0.991,
-        timestamp: "2026-10-03T18:42:05.000Z"
-      }
-    ]
-  },
-  {
-    id: 'fetch-002',
-    timestamp: '2026-10-02T14:15:30.000Z',
-    summary: '12 comments fetched, 3 flagged toxic',
-    totalComments: 12,
-    toxicCount: 3,
-    normalCount: 9,
-    comments: [
-      {
-        text: "I hate people from that community, they are disgusting and should all be eliminated immediately.",
-        label: "toxic",
-        subcategories: ["identity_attack", "insult"],
-        confidence: 0.961,
-        timestamp: "2026-10-02T14:15:31.000Z"
-      },
-      {
-        text: "Watch your back after work today, you won't make it to your car.",
-        label: "toxic",
-        subcategories: ["threat"],
-        confidence: 0.978,
-        timestamp: "2026-10-02T14:15:32.000Z"
-      },
-      {
-        text: "You are the most pathetic clown on this whole platform, absolute joke of a human.",
-        label: "toxic",
-        subcategories: ["insult"],
-        confidence: 0.934,
-        timestamp: "2026-10-02T14:15:33.000Z"
-      },
-      {
-        text: "What time does the conference live stream kick off tomorrow morning?",
-        label: "normal",
-        subcategories: [],
-        confidence: 0.982,
-        timestamp: "2026-10-02T14:15:34.000Z"
-      },
-      {
-        text: "Thank you for the constructive code review feedback, updated the PR accordingly.",
-        label: "normal",
-        subcategories: [],
-        confidence: 0.994,
-        timestamp: "2026-10-02T14:15:35.000Z"
-      }
-    ]
-  },
-  {
-    id: 'fetch-003',
-    timestamp: '2026-10-01T09:30:15.000Z',
-    summary: '8 comments fetched, 1 flagged toxic',
-    totalComments: 8,
-    toxicCount: 1,
-    normalCount: 7,
-    comments: [
-      {
-        text: "Get lost you brainless fraud, nobody wants your unsolicited advice here.",
-        label: "toxic",
-        subcategories: ["insult"],
-        confidence: 0.912,
-        timestamp: "2026-10-01T09:30:16.000Z"
-      },
-      {
-        text: "Congratulations on the successful product launch team! Huge milestone achieved.",
-        label: "normal",
-        subcategories: [],
-        confidence: 0.989,
-        timestamp: "2026-10-01T09:30:17.000Z"
-      },
-      {
-        text: "Looking forward to checking out the upcoming documentation release.",
-        label: "normal",
-        subcategories: [],
-        confidence: 0.995,
-        timestamp: "2026-10-01T09:30:18.000Z"
-      }
-    ]
-  }
-];
-
 export default function HistoryPage() {
   const navigate = useNavigate();
 
@@ -189,30 +66,34 @@ export default function HistoryPage() {
     navigate('/login');
   };
 
-  // =========================================================================
-  // TODO: Wire in GET /api/feed/history here to replace the hardcoded placeholder data.
-  //
-  // Example future implementation:
-  // useEffect(() => {
-  //   async function fetchHistory() {
-  //     try {
-  //       const res = await client.get('/api/feed/history');
-  //       setFetches(res.data);
-  //     } catch (err) {
-  //       console.error("Failed to load feed history:", err);
-  //     }
-  //   }
-  //   fetchHistory();
-  // }, []);
-  //
-  // The state `fetches` will populate this chronological list directly.
-  // =========================================================================
-  const [fetches, setFetches] = useState(PLACEHOLDER_FETCH_HISTORY);
+  const [fetches, setFetches] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Track expanded/collapsed state per fetch entry
-  const [expandedFetches, setExpandedFetches] = useState({
-    'fetch-001': true, // First one open by default for immediate preview
-  });
+  const [expandedFetches, setExpandedFetches] = useState({});
+
+  const loadHistory = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await client.get('/api/feed/history');
+      const data = res.data || [];
+      setFetches(data);
+      if (data.length > 0) {
+        setExpandedFetches({ [data[0].id]: true });
+      }
+    } catch (err) {
+      console.error('Failed to load feed history from database:', err);
+      setError(err.response?.data?.error || 'Failed to load feed history.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadHistory();
+  }, []);
 
   const toggleExpand = (id) => {
     setExpandedFetches((prev) => ({
@@ -310,24 +191,48 @@ export default function HistoryPage() {
             </p>
           </div>
 
-          <Link
-            to="/home"
-            className="self-start sm:self-auto inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-semibold text-sm shadow-lg shadow-indigo-600/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
-          >
-            <Sparkles className="w-4 h-4" />
-            <span>Fetch New Feed</span>
-          </Link>
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <button
+              onClick={loadHistory}
+              disabled={loading}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 font-medium text-sm border border-slate-700/60 shadow transition-all cursor-pointer disabled:opacity-50"
+              title="Refresh history from database"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline">Refresh</span>
+            </button>
+            <Link
+              to="/home"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-semibold text-sm shadow-lg shadow-indigo-600/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Fetch New Feed</span>
+            </Link>
+          </div>
         </div>
 
-        {/* EMPTY STATE */}
-        {(!fetches || fetches.length === 0) ? (
+        {/* LOADING STATE */}
+        {loading ? (
+          <div className="rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-xl p-14 text-center shadow-xl relative z-10">
+            <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-3 text-indigo-400 shadow-inner">
+              <RefreshCw className="w-6 h-6 animate-spin" />
+            </div>
+            <h3 className="text-base font-semibold text-white mb-1">Loading Feed History</h3>
+            <p className="text-xs text-slate-400">Querying your past inferences from PostgreSQL...</p>
+          </div>
+        ) : error ? (
+          <div className="rounded-2xl bg-rose-500/10 border border-rose-500/20 p-6 text-center text-rose-300 text-sm relative z-10 mb-6">
+            <AlertTriangle className="w-5 h-5 mx-auto mb-2 text-rose-400" />
+            <span>{error}</span>
+          </div>
+        ) : (!fetches || fetches.length === 0) ? (
           <div className="rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-xl p-10 sm:p-14 text-center shadow-xl relative z-10">
             <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mx-auto mb-4 text-indigo-400 shadow-inner">
               <Radio className="w-7 h-7 text-indigo-400" />
             </div>
             <h2 className="text-xl font-bold text-white mb-2">No fetches yet</h2>
             <p className="text-sm text-slate-400 max-w-md mx-auto mb-7 leading-relaxed">
-              No fetches yet — go to Homepage to fetch your first feed.
+              No past extractions found in database for this account. Fetch a feed on the Homepage to generate your first audit log!
             </p>
             <Link
               to="/home"

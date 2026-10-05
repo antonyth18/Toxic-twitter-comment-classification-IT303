@@ -1,14 +1,14 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
-import { 
-  ShieldAlert, 
-  Sparkles, 
-  Lock, 
-  Zap, 
-  ArrowRight, 
-  CheckCircle2, 
-  Flame, 
+import {
+  ShieldAlert,
+  Sparkles,
+  Lock,
+  Zap,
+  ArrowRight,
+  CheckCircle2,
+  Flame,
   AlertTriangle,
   EyeOff,
   UserX
@@ -144,7 +144,8 @@ export default function Landing() {
 
       {/* Footer */}
       <footer className="border-t border-slate-800/80 py-8 px-4 text-center text-xs text-slate-500">
-        <p>Toxic Twitter Comment Classification System &bull; IT303 Security &amp; ML Architecture</p>
+        <p>Toxic Twitter Comment Classification System &bull; IT303 Software Engineering</p>
+        <p>Anirudh Trichy, Antony Thaikadavil, KV Akash &bull; Under guidace of Prof. Jaidhar CD</p>
       </footer>
     </div>
   );

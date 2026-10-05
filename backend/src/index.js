@@ -5,6 +5,7 @@ require('dotenv').config();
 
 const authRoutes = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
+const feedRoutes = require('./routes/feed');
 const auditLogger = require('./middleware/audit');
 const { authenticateToken } = require('./middleware/auth');
 
@@ -41,6 +42,7 @@ app.get('/api/health', async (req, res) => {
 // Mount Routes
 app.use('/api', authRoutes);
 app.use('/api', adminRoutes);
+app.use('/api', feedRoutes);
 
 // Protected Admin Placeholders
 app.get('/api/admin/users', authenticateToken, (req, res) => {
@@ -48,15 +50,6 @@ app.get('/api/admin/users', authenticateToken, (req, res) => {
 });
 
 app.patch('/api/admin/users/:id', authenticateToken, (req, res) => {
-  res.status(501).json({ message: "Endpoint under construction (Phase 2)" });
-});
-
-// Protected Feed/Fetch Routes
-app.post('/api/feed/fetch', authenticateToken, (req, res) => {
-  res.status(501).json({ message: "Endpoint under construction (Phase 2)" });
-});
-
-app.get('/api/feed/history', authenticateToken, (req, res) => {
   res.status(501).json({ message: "Endpoint under construction (Phase 2)" });
 });
 

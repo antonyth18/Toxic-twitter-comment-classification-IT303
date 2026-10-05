@@ -45,24 +45,34 @@ def classify_text(request: ClassifyRequest):
 
     text_lower = request.text.lower()
     
-    # Very simple mock classification logic based on keywords
-    toxic_keywords = ["hate", "kill", "stupid", "idiot", "dumb", "ugly", "trash"]
+    # Keyword detection patterns across toxicity subcategories
+    threat_patterns = [
+        "kill", "murder", "find you", "where you live", "make you regret",
+        "hunt you", "destroy", "shoot", "hurt you", "die", "attack", "beat you"
+    ]
+    insult_patterns = [
+        "stupid", "idiot", "dumb", "ugly", "trash", "clown", "pathetic",
+        "loser", "scumbag", "braindead", "shut up", "fraud"
+    ]
+    identity_patterns = [
+        "hate", "eliminated", "disgusting", "that community", "your kind"
+    ]
+
     found_subcategories = []
-    
-    if "kill" in text_lower:
+
+    if any(p in text_lower for p in threat_patterns):
         found_subcategories.append("threat")
-    if any(word in text_lower for word in ["stupid", "idiot", "dumb", "ugly"]):
+    if any(p in text_lower for p in insult_patterns):
         found_subcategories.append("insult")
-    if "hate" in text_lower:
+    if any(p in text_lower for p in identity_patterns):
         found_subcategories.append("identity_attack")
 
     if found_subcategories:
         label = "toxic"
-        confidence = 0.88 + (0.02 * len(found_subcategories))  # Dynamic-looking mock confidence
+        confidence = min(0.98, 0.88 + (0.03 * len(found_subcategories)))
     else:
         label = "normal"
         confidence = 0.95
-        found_subcategories = []
 
     return ClassifyResponse(
         label=label,

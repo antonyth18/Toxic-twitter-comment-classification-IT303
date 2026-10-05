@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import client from '../api/client';
 import { 
   ShieldAlert, 
   History, 
@@ -16,17 +16,6 @@ import {
   Zap, 
   Radio
 } from 'lucide-react';
-
-const CLASSIFIER_URL = 'http://localhost:8000';
-
-// Sample Twitter comment feed for testing classifier
-const SAMPLE_TWEETS = [
-  "Just finished reading the new AI research paper, incredible advancements being made this year!",
-  "Shut up you stupid idiot, nobody asked for your trash opinion. Go delete your account.",
-  "I know exactly where you live and I will find you and make you regret ever posting this.",
-  "I hate people from that community, they are disgusting and should all be eliminated.",
-  "Loved the live concert tonight, the acoustic performance was absolutely wonderful and inspiring!"
-];
 
 // Subcategory tag chip configurations matching exact classifier labels
 const SUBCATEGORY_CONFIG = {
@@ -97,27 +86,8 @@ export default function HomePage() {
     setErrorMessage('');
 
     try {
-      // =========================================================================
-      // TODO: Replace this multiple-classifier call with a single API call once
-      // Person B's backend route is live:
-      //
-      // const res = await client.post('/api/feed/fetch');
-      // const results = res.data; // Array of { text, label, subcategories, confidence, timestamp }
-      //
-      // Note: The card-rendering logic below will not need to change, only the data source!
-      // =========================================================================
-      const requests = SAMPLE_TWEETS.map(async (text) => {
-        const response = await axios.post(`${CLASSIFIER_URL}/classify`, { text }, { timeout: 7000 });
-        return {
-          text,
-          label: response.data.label, // "toxic" or "normal"
-          subcategories: response.data.subcategories || [], // e.g. ["threat", "insult", "identity_attack"]
-          confidence: response.data.confidence,
-          timestamp: response.data.timestamp || new Date().toISOString(),
-        };
-      });
-
-      const results = await Promise.all(requests);
+      const res = await client.post('/api/feed/fetch');
+      const results = res.data;
       setFeedResults(results);
       setFeedState('success');
 
@@ -130,11 +100,13 @@ export default function HomePage() {
         // Ignore local storage quota errors
       }
     } catch (err) {
-      console.error('Classifier connection error:', err);
+      console.error('Feed retrieval/classifier error:', err);
+      const backendError = err.response?.data?.error;
       setErrorMessage(
-        err.code === 'ECONNABORTED'
-          ? 'Connection to classifier service timed out. Please check if http://localhost:8000 is active.'
-          : 'Unable to reach the Python classifier service at http://localhost:8000. Please ensure the service is running.'
+        backendError ||
+        (err.code === 'ECONNABORTED'
+          ? 'Connection to backend timed out. Please check if http://localhost:5000 is active.'
+          : 'Unable to fetch comments from backend feed service. Please ensure backend and classifier are running.')
       );
       setFeedState('error');
     }
