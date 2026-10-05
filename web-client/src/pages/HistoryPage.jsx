@@ -10,40 +10,15 @@ import {
   AlertTriangle, 
   CheckCircle2, 
   Clock, 
-  Sparkles, 
-  UserX, 
-  Zap, 
+  Sparkles,   
   ArrowRight,
   Calendar,
   Layers,
   Flame,
   Radio
 } from 'lucide-react';
+import { SUBCATEGORY_CONFIG } from '../constants/subcategories';
 
-// Subcategory tag chip configurations matching exact classifier labels
-const SUBCATEGORY_CONFIG = {
-  threat: {
-    label: 'Threat',
-    icon: ShieldAlert,
-    bg: 'bg-red-500/15',
-    text: 'text-red-300',
-    border: 'border-red-500/30',
-  },
-  insult: {
-    label: 'Insult',
-    icon: UserX,
-    bg: 'bg-purple-500/15',
-    text: 'text-purple-300',
-    border: 'border-purple-500/30',
-  },
-  identity_attack: {
-    label: 'Identity Attack',
-    icon: Zap,
-    bg: 'bg-pink-500/15',
-    text: 'text-pink-300',
-    border: 'border-pink-500/30',
-  },
-};
 
 // Hardcoded placeholder data: chronological past feed fetches
 const PLACEHOLDER_FETCH_HISTORY = [
@@ -103,7 +78,7 @@ const PLACEHOLDER_FETCH_HISTORY = [
       {
         text: "I hate people from that community, they are disgusting and should all be eliminated immediately.",
         label: "toxic",
-        subcategories: ["identity_attack", "insult"],
+        subcategories: ["identity_hate", "insult"],
         confidence: 0.961,
         timestamp: "2026-10-02T14:15:31.000Z"
       },
