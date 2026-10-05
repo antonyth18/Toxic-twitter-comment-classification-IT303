@@ -11,13 +11,35 @@ import {
   AlertTriangle, 
   CheckCircle2, 
   Clock, 
-  Sparkles, 
-  UserX, 
-  Zap, 
-  Radio
+  Sparkles,
+  Radio,
+  Send,
+  Trash2,
+  PenLine
 } from 'lucide-react';
+import { SUBCATEGORY_CONFIG } from '../constants/subcategories';
 
 const CLASSIFIER_URL = 'http://localhost:8000';
+const MAX_BATCH_SIZE = 100; // must match MAX_BATCH_SIZE in classifier-service/main.py
+const MAX_MANUAL_RESULTS = 20;
+
+// Persist results to local history so /history page reflects the latest classifications
+function saveToHistory(results) {
+  try {
+    const existing = JSON.parse(localStorage.getItem('classification_history') || '[]');
+    const updated = [...results.map((r, i) => ({ id: `${Date.now()}-${i}`, ...r })), ...existing].slice(0, 50);
+    localStorage.setItem('classification_history', JSON.stringify(updated));
+  } catch {
+    // Ignore local storage quota errors
+  }
+}
+
+function classifierErrorMessage(err) {
+  if (err.response?.data?.detail) return `Classifier rejected the request: ${err.response.data.detail}`;
+  return err.code === 'ECONNABORTED'
+    ? 'Connection to classifier service timed out. Please check if http://localhost:8000 is active.'
+    : 'Unable to reach the Python classifier service at http://localhost:8000. Please ensure the service is running.';
+}
 
 // Sample Twitter comment feed for testing classifier
 const SAMPLE_TWEETS = [
@@ -28,30 +50,101 @@ const SAMPLE_TWEETS = [
   "Loved the live concert tonight, the acoustic performance was absolutely wonderful and inspiring!"
 ];
 
-// Subcategory tag chip configurations matching exact classifier labels
-const SUBCATEGORY_CONFIG = {
-  threat: {
-    label: 'Threat',
-    icon: ShieldAlert,
-    bg: 'bg-red-500/15',
-    text: 'text-red-300',
-    border: 'border-red-500/30',
-  },
-  insult: {
-    label: 'Insult',
-    icon: UserX,
-    bg: 'bg-purple-500/15',
-    text: 'text-purple-300',
-    border: 'border-purple-500/30',
-  },
-  identity_attack: {
-    label: 'Identity Attack',
-    icon: Zap,
-    bg: 'bg-pink-500/15',
-    text: 'text-pink-300',
-    border: 'border-pink-500/30',
-  },
-};
+
+// Result card for one classified comment (used by the feed and the manual input panel)
+function ClassificationCard({ item }) {
+  const isToxic = item.label === 'toxic';
+
+  return (
+    <article
+      className={`rounded-2xl bg-slate-900/80 border backdrop-blur-xl p-5 sm:p-6 transition-all shadow-lg hover:shadow-2xl ${
+        isToxic
+          ? 'border-rose-500/40 border-l-4 border-l-rose-500 shadow-rose-500/5'
+          : 'border-slate-800 border-l-4 border-l-emerald-500 shadow-emerald-500/5'
+      }`}
+    >
+      {/* Top Bar: Verdict Badge & Confidence */}
+      <div className="flex items-center justify-between gap-3 mb-3.5">
+        {/* Strong Visual Distinction Badge */}
+        {isToxic ? (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-sm shadow-rose-500/20">
+            <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+            <span>Toxic</span>
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm shadow-emerald-500/20">
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Normal</span>
+          </span>
+        )}
+
+        {/* Confidence percentage */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-400 font-medium">Confidence:</span>
+          <span className="text-sm font-bold font-mono text-slate-200 bg-slate-950/60 px-2 py-0.5 rounded border border-slate-800">
+            {(item.confidence * 100).toFixed(1)}%
+          </span>
+        </div>
+      </div>
+
+      {/* Comment Text Body */}
+      <div className="bg-slate-950/60 rounded-xl p-4 border border-slate-800/80 mb-4">
+        <p className="text-sm sm:text-base text-slate-200 leading-relaxed font-sans">
+          "{item.text}"
+        </p>
+      </div>
+
+      {/* Bottom: Subcategory Tag Chips & Timestamp */}
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800/60">
+        {/* Subcategories (if toxic) */}
+        <div className="flex flex-wrap items-center gap-2">
+          {isToxic && item.subcategories && item.subcategories.length > 0 ? (
+            <>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                Subcategories:
+              </span>
+              {item.subcategories.map((sub) => {
+                const config = SUBCATEGORY_CONFIG[sub] || {
+                  label: sub.replace('_', ' '),
+                  icon: AlertTriangle,
+                  bg: 'bg-amber-500/15',
+                  text: 'text-amber-300',
+                  border: 'border-amber-500/30',
+                };
+                const IconComponent = config.icon;
+
+                return (
+                  <span
+                    key={sub}
+                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-semibold border ${config.bg} ${config.text} ${config.border}`}
+                  >
+                    <IconComponent className="w-3.5 h-3.5" />
+                    <span>{config.label}</span>
+                  </span>
+                );
+              })}
+            </>
+          ) : !isToxic ? (
+            <span className="text-xs text-emerald-400/90 flex items-center gap-1">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>No toxic subcategories detected</span>
+            </span>
+          ) : (
+            <span className="text-xs text-amber-400/80">
+              General toxicity (no specific subcategory)
+            </span>
+          )}
+        </div>
+
+        {/* Timestamp */}
+        <div className="flex items-center gap-1 text-[11px] text-slate-500 font-mono ml-auto">
+          <Clock className="w-3.5 h-3.5" />
+          <span>{new Date(item.timestamp).toLocaleTimeString()}</span>
+        </div>
+      </div>
+    </article>
+  );
+}
 
 export default function HomePage() {
   const navigate = useNavigate();
@@ -71,6 +164,13 @@ export default function HomePage() {
   const [feedResults, setFeedResults] = useState([]);
   const [errorMessage, setErrorMessage] = useState('');
 
+  // Manual input states
+  const [manualText, setManualText] = useState('');
+  const [splitLines, setSplitLines] = useState(false);
+  const [manualLoading, setManualLoading] = useState(false);
+  const [manualResults, setManualResults] = useState([]);
+  const [manualError, setManualError] = useState('');
+
   // Logout handler: clears all localStorage data and redirects to /login
   const handleLogout = () => {
     localStorage.clear();
@@ -87,7 +187,8 @@ export default function HomePage() {
    * Response shape for each comment:
    * {
    *   label: "toxic" | "normal",
-   *   subcategories: ["threat" | "insult" | "identity_attack", ...],
+   *   subcategories: ["severe_toxic" | "obscene" | "threat" | "insult" | "identity_hate", ...],
+   *   probabilities: { toxic, severe_toxic, obscene, threat, insult, identity_hate },
    *   confidence: number (0.0 to 1.0),
    *   timestamp: ISOString
    * }
@@ -111,7 +212,7 @@ export default function HomePage() {
         return {
           text,
           label: response.data.label, // "toxic" or "normal"
-          subcategories: response.data.subcategories || [], // e.g. ["threat", "insult", "identity_attack"]
+          subcategories: response.data.subcategories || [], // e.g. ["threat", "insult", "identity_hate"]
           confidence: response.data.confidence,
           timestamp: response.data.timestamp || new Date().toISOString(),
         };
@@ -120,25 +221,64 @@ export default function HomePage() {
       const results = await Promise.all(requests);
       setFeedResults(results);
       setFeedState('success');
-
-      // Persist to local history so /history page reflects the latest feed classifications
-      try {
-        const existing = JSON.parse(localStorage.getItem('classification_history') || '[]');
-        const updated = [...results.map((r, i) => ({ id: `${Date.now()}-${i}`, ...r })), ...existing].slice(0, 50);
-        localStorage.setItem('classification_history', JSON.stringify(updated));
-      } catch {
-        // Ignore local storage quota errors
-      }
+      saveToHistory(results);
     } catch (err) {
       console.error('Classifier connection error:', err);
-      setErrorMessage(
-        err.code === 'ECONNABORTED'
-          ? 'Connection to classifier service timed out. Please check if http://localhost:8000 is active.'
-          : 'Unable to reach the Python classifier service at http://localhost:8000. Please ensure the service is running.'
-      );
+      setErrorMessage(classifierErrorMessage(err));
       setFeedState('error');
     }
   };
+
+  /**
+   * Manual Input Handler
+   * --------------------
+   * Classifies user-typed text via POST /classify/batch. With "one comment
+   * per line" enabled, each non-empty line is classified separately;
+   * otherwise the whole text is one comment.
+   *
+   * TODO: route through the backend (POST /api/classify) once it exists, so
+   * requests are authenticated, audit-logged and stored in the database.
+   */
+  const handleManualClassify = async (e) => {
+    e?.preventDefault();
+    const texts = splitLines
+      ? manualText.split('\n').map((line) => line.trim()).filter(Boolean)
+      : [manualText.trim()].filter(Boolean);
+
+    if (texts.length === 0) return;
+    if (texts.length > MAX_BATCH_SIZE) {
+      setManualError(`Too many comments: ${texts.length} lines, but the limit is ${MAX_BATCH_SIZE} per request.`);
+      return;
+    }
+
+    setManualLoading(true);
+    setManualError('');
+    try {
+      const response = await axios.post(`${CLASSIFIER_URL}/classify/batch`, { texts }, { timeout: 15000 });
+      const results = response.data.results.map((r, i) => ({
+        text: texts[i],
+        label: r.label,
+        subcategories: r.subcategories || [],
+        confidence: r.confidence,
+        timestamp: r.timestamp || new Date().toISOString(),
+      }));
+      setManualResults((prev) => [...results, ...prev].slice(0, MAX_MANUAL_RESULTS));
+      setManualText('');
+      saveToHistory(results);
+    } catch (err) {
+      console.error('Classifier connection error:', err);
+      setManualError(classifierErrorMessage(err));
+    } finally {
+      setManualLoading(false);
+    }
+  };
+
+  // Ctrl/Cmd + Enter submits the manual input form
+  const handleManualKeyDown = (e) => {
+    if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) handleManualClassify(e);
+  };
+
+  const manualLineCount = manualText.split('\n').filter((line) => line.trim()).length;
 
   return (
     <div className="min-h-screen bg-[#0b0f19] text-slate-100 flex flex-col font-sans selection:bg-indigo-500/30 selection:text-indigo-200">
@@ -233,6 +373,82 @@ export default function HomePage() {
           </div>
         </div>
 
+        {/* MANUAL INPUT PANEL */}
+        <section className="rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-xl p-5 sm:p-6 shadow-xl mb-10 relative z-10">
+          <form onSubmit={handleManualClassify}>
+            <label htmlFor="manual-input" className="flex items-center gap-2 text-sm font-semibold text-white mb-3">
+              <PenLine className="w-4 h-4 text-indigo-400" />
+              <span>Classify Your Own Comment</span>
+            </label>
+            <textarea
+              id="manual-input"
+              value={manualText}
+              onChange={(e) => setManualText(e.target.value)}
+              onKeyDown={handleManualKeyDown}
+              rows={splitLines ? 5 : 3}
+              placeholder={splitLines ? 'Paste comments here, one per line...' : 'Type or paste a comment to analyze...'}
+              className="w-full rounded-xl bg-slate-950/60 border border-slate-800 focus:border-indigo-500/60 focus:ring-2 focus:ring-indigo-500/20 outline-none p-4 text-sm text-slate-200 placeholder:text-slate-500 resize-y transition-all"
+            />
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mt-3">
+              <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={splitLines}
+                  onChange={(e) => setSplitLines(e.target.checked)}
+                  className="accent-indigo-500"
+                />
+                <span>
+                  One comment per line
+                  {splitLines && manualLineCount > 0 && (
+                    <span className={manualLineCount > MAX_BATCH_SIZE ? 'text-rose-400' : 'text-slate-500'}>
+                      {' '}({manualLineCount}/{MAX_BATCH_SIZE})
+                    </span>
+                  )}
+                </span>
+              </label>
+
+              <div className="flex items-center gap-3">
+                <span className="hidden sm:inline text-[11px] text-slate-500">Ctrl/⌘ + Enter</span>
+                <button
+                  type="submit"
+                  disabled={manualLoading || !manualText.trim()}
+                  className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold shadow-lg shadow-indigo-600/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                >
+                  {manualLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                  <span>{manualLoading ? 'Classifying...' : 'Classify'}</span>
+                </button>
+              </div>
+            </div>
+          </form>
+
+          {manualError && (
+            <div className="flex items-start gap-2 mt-4 rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-sm text-rose-200/90">
+              <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0 text-rose-400" />
+              <span>{manualError}</span>
+            </div>
+          )}
+
+          {manualResults.length > 0 && (
+            <div className="mt-6 space-y-4">
+              <div className="flex items-center justify-between text-xs text-slate-400 px-1">
+                <span>Your results (latest first)</span>
+                <button
+                  type="button"
+                  onClick={() => setManualResults([])}
+                  className="flex items-center gap-1 text-slate-400 hover:text-rose-400 font-medium transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Clear</span>
+                </button>
+              </div>
+              {manualResults.map((item, index) => (
+                <ClassificationCard key={`${item.timestamp}-${index}`} item={item} />
+              ))}
+            </div>
+          )}
+        </section>
+
         {/* 1. EMPTY STATE (Before first fetch) */}
         {feedState === 'idle' && (
           <div className="rounded-2xl bg-slate-900/60 border border-slate-800/80 backdrop-blur-xl p-10 sm:p-14 text-center shadow-xl relative z-10">
@@ -317,100 +533,9 @@ export default function HomePage() {
               </button>
             </div>
 
-            {feedResults.map((item, index) => {
-              const isToxic = item.label === 'toxic';
-
-              return (
-                <article
-                  key={index}
-                  className={`rounded-2xl bg-slate-900/80 border backdrop-blur-xl p-5 sm:p-6 transition-all shadow-lg hover:shadow-2xl ${
-                    isToxic
-                      ? 'border-rose-500/40 border-l-4 border-l-rose-500 shadow-rose-500/5'
-                      : 'border-slate-800 border-l-4 border-l-emerald-500 shadow-emerald-500/5'
-                  }`}
-                >
-                  {/* Top Bar: Verdict Badge & Confidence */}
-                  <div className="flex items-center justify-between gap-3 mb-3.5">
-                    {/* Strong Visual Distinction Badge */}
-                    {isToxic ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-sm shadow-rose-500/20">
-                        <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
-                        <span>Toxic</span>
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm shadow-emerald-500/20">
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                        <span>Normal</span>
-                      </span>
-                    )}
-
-                    {/* Confidence percentage */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-400 font-medium">Confidence:</span>
-                      <span className="text-sm font-bold font-mono text-slate-200 bg-slate-950/60 px-2 py-0.5 rounded border border-slate-800">
-                        {(item.confidence * 100).toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Comment Text Body */}
-                  <div className="bg-slate-950/60 rounded-xl p-4 border border-slate-800/80 mb-4">
-                    <p className="text-sm sm:text-base text-slate-200 leading-relaxed font-sans">
-                      "{item.text}"
-                    </p>
-                  </div>
-
-                  {/* Bottom: Subcategory Tag Chips & Timestamp */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800/60">
-                    {/* Subcategories (if toxic) */}
-                    <div className="flex flex-wrap items-center gap-2">
-                      {isToxic && item.subcategories && item.subcategories.length > 0 ? (
-                        <>
-                          <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-                            Subcategories:
-                          </span>
-                          {item.subcategories.map((sub) => {
-                            const config = SUBCATEGORY_CONFIG[sub] || {
-                              label: sub.replace('_', ' '),
-                              icon: AlertTriangle,
-                              bg: 'bg-amber-500/15',
-                              text: 'text-amber-300',
-                              border: 'border-amber-500/30',
-                            };
-                            const IconComponent = config.icon;
-
-                            return (
-                              <span
-                                key={sub}
-                                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-lg text-xs font-semibold border ${config.bg} ${config.text} ${config.border}`}
-                              >
-                                <IconComponent className="w-3.5 h-3.5" />
-                                <span>{config.label}</span>
-                              </span>
-                            );
-                          })}
-                        </>
-                      ) : !isToxic ? (
-                        <span className="text-xs text-emerald-400/90 flex items-center gap-1">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
-                          <span>No toxic subcategories detected</span>
-                        </span>
-                      ) : (
-                        <span className="text-xs text-amber-400/80">
-                          General toxicity (no specific subcategory)
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Timestamp */}
-                    <div className="flex items-center gap-1 text-[11px] text-slate-500 font-mono ml-auto">
-                      <Clock className="w-3.5 h-3.5" />
-                      <span>{new Date(item.timestamp).toLocaleTimeString()}</span>
-                    </div>
-                  </div>
-                </article>
-              );
-            })}
+            {feedResults.map((item, index) => (
+              <ClassificationCard key={index} item={item} />
+            ))}
           </div>
         )}
       </main>
