@@ -66,10 +66,10 @@ export default function ErrorBanner({ error, onClose }) {
   return (
     <div
       role="alert"
-      className="flex items-start justify-between gap-3 p-3.5 rounded-xl bg-red-500/10 border border-red-500/25 text-red-200 text-sm animate-in fade-in duration-200"
+      className="flex items-start justify-between gap-3 p-3.5 rounded-xl bg-red-50 border border-red-200 text-red-700 text-sm animate-in fade-in duration-200 shadow-sm"
     >
       <div className="flex items-start gap-2.5">
-        <AlertCircle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
+        <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
         <span className="leading-snug">{displayMessage}</span>
       </div>
       {onClose && (
@@ -77,7 +77,7 @@ export default function ErrorBanner({ error, onClose }) {
           type="button"
           onClick={onClose}
           aria-label="Dismiss error"
-          className="text-red-400/80 hover:text-red-200 p-0.5 rounded transition-colors shrink-0"
+          className="text-red-500 hover:text-red-700 p-0.5 rounded transition-colors shrink-0 cursor-pointer"
         >
           <X className="w-4 h-4" />
         </button>

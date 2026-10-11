@@ -192,4 +192,83 @@ router.get('/feed/history', authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * POST /api/feed/classify
+ * Auth required.
+ * Validates custom input text, classifies it using the existing classifyComment helper,
+ * saves it as a FeedFetch record with ONE Classification in PostgreSQL,
+ * and returns { id, text, label, subcategories, confidence, timestamp }.
+ */
+router.post('/feed/classify', authenticateToken, async (req, res) => {
+  try {
+    const { text } = req.body || {};
+
+    // Validate: text must be a string, trimmed, non-empty, max 1000 characters
+    if (typeof text !== 'string') {
+      return res.status(400).json({ error: 'Text must be a string.' });
+    }
+
+    const trimmedText = text.trim();
+
+    if (trimmedText.length === 0) {
+      return res.status(400).json({ error: 'Text cannot be empty.' });
+    }
+
+    if (trimmedText.length > 1000 || text.length > 1000) {
+      return res.status(400).json({ error: 'Text must not exceed 1000 characters.' });
+    }
+
+    const userId = req.user.id;
+
+    // Reuse the existing classifyComment() helper
+    const result = await classifyComment(trimmedText);
+
+    const classificationData = {
+      text: trimmedText,
+      label: result.label || 'normal',
+      subcategories: Array.isArray(result.subcategories) ? result.subcategories : [],
+      confidence: typeof result.confidence === 'number' ? result.confidence : 0.9,
+      timestamp: result.timestamp ? new Date(result.timestamp) : new Date()
+    };
+
+    // Save as a FeedFetch for the user with ONE Classification so it appears in GET /feed/history
+    const feedFetch = await prisma.feedFetch.create({
+      data: {
+        user_id: userId,
+        fetched_at: new Date(),
+        classifications: {
+          create: [
+            {
+              comment_text: classificationData.text,
+              label: classificationData.label,
+              subcategories_json: classificationData.subcategories,
+              confidence: classificationData.confidence,
+              timestamp: classificationData.timestamp
+            }
+          ]
+        }
+      },
+      include: {
+        classifications: true
+      }
+    });
+
+    const classification = feedFetch.classifications[0];
+
+    // Return {id, text, label, subcategories, confidence, timestamp}, matching /feed/fetch item shape
+    return res.status(200).json({
+      id: classification.id,
+      text: classification.comment_text,
+      label: classification.label,
+      subcategories: classification.subcategories_json,
+      confidence: classification.confidence,
+      timestamp: classification.timestamp.toISOString()
+    });
+
+  } catch (error) {
+    console.error('Error in POST /api/feed/classify:', error);
+    return res.status(500).json({ error: 'Internal server error while classifying text.' });
+  }
+});
+
 module.exports = router;

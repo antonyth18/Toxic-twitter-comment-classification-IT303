@@ -22,19 +22,19 @@ export default function Navbar() {
   ];
 
   return (
-    <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#0b0f19]/80 border-b border-slate-800/80">
+    <header className="sticky top-0 z-50 backdrop-blur-md bg-transparent border-b border-white/15">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-rose-500 p-0.5 shadow-lg shadow-indigo-500/20 group-hover:shadow-indigo-500/40 transition-all">
-            <div className="w-full h-full bg-[#0b0f19] rounded-[10px] flex items-center justify-center">
-              <ShieldAlert className="w-5 h-5 text-indigo-400 group-hover:scale-110 transition-transform" />
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-400 to-rose-400 p-0.5 shadow-lg shadow-purple-900/20 group-hover:shadow-purple-900/40 transition-all">
+            <div className="w-full h-full bg-white/20 backdrop-blur-sm rounded-[10px] flex items-center justify-center">
+              <ShieldAlert className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
             </div>
           </div>
           <div>
-            <span className="font-bold text-lg bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+            <span className="font-bold text-lg text-white">
               Toxisense
             </span>
-            <span className="hidden sm:inline-block ml-2 text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+            <span className="hidden sm:inline-block ml-2 text-[10px] font-semibold tracking-wider uppercase px-2 py-0.5 rounded-full bg-white/15 text-white border border-white/25">
               AI Guard
             </span>
           </div>
@@ -49,10 +49,10 @@ export default function Navbar() {
                 <Link
                   key={item.to}
                   to={item.to}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                     isActive
-                      ? 'bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 shadow-sm shadow-indigo-500/10'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                      ? 'bg-white/20 text-white border border-white/30 shadow-sm'
+                      : 'text-white/80 hover:text-white hover:bg-white/10'
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -61,17 +61,17 @@ export default function Navbar() {
               );
             })}
 
-            <div className="h-5 w-px bg-slate-800 mx-1 sm:mx-2" />
+            <div className="h-5 w-px bg-white/20 mx-1 sm:mx-2" />
 
             <div className="flex items-center gap-2">
               {user?.email && (
-                <span className="hidden md:inline-block text-xs text-slate-400 font-mono px-2 py-1 rounded bg-slate-900 border border-slate-800 truncate max-w-[160px]">
+                <span className="hidden md:inline-block text-xs text-white/90 font-mono px-2.5 py-1 rounded-full bg-white/15 border border-white/25 truncate max-w-[160px]">
                   {user.email}
                 </span>
               )}
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium text-white/80 hover:text-white hover:bg-white/15 border border-transparent hover:border-white/20 transition-all cursor-pointer"
                 title="Log Out"
               >
                 <LogOut className="w-4 h-4" />
@@ -83,13 +83,13 @@ export default function Navbar() {
           <div className="flex items-center gap-3">
             <Link
               to="/login"
-              className="text-sm font-medium text-slate-300 hover:text-white px-3 py-1.5 rounded-lg hover:bg-slate-800/60 transition-colors"
+              className="text-sm font-medium text-white/90 hover:text-white px-3.5 py-1.5 rounded-full hover:bg-white/10 transition-colors"
             >
               Sign In
             </Link>
             <Link
               to="/register"
-              className="text-sm font-medium px-4 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/25 transition-all"
+              className="btn-outline text-sm py-1.5 px-5"
             >
               Get Started
             </Link>

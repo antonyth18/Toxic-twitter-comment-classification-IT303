@@ -240,9 +240,104 @@ router.post('/auth/2fa/verify', async (req, res) => {
         role: user.role
       }
     });
+  } catch (error) {
+    console.error('2FA verification error:', error);
+    return res.status(500).json({ error: 'Internal server error during 2FA verification.' });
+  }
+});
+
+// In-memory rate limiter for password reset attempts: 5 failed attempts per email within 15 minutes
+const resetAttempts = new Map();
+const RESET_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const MAX_RESET_ATTEMPTS = 5;
+
+function isResetRateLimited(email) {
+  if (!email) return false;
+  const attempts = resetAttempts.get(email) || [];
+  const now = Date.now();
+  const validAttempts = attempts.filter((ts) => now - ts < RESET_WINDOW_MS);
+  resetAttempts.set(email, validAttempts);
+  return validAttempts.length >= MAX_RESET_ATTEMPTS;
+}
+
+function recordResetFailure(email) {
+  if (!email) return;
+  const attempts = resetAttempts.get(email) || [];
+  const now = Date.now();
+  const validAttempts = attempts.filter((ts) => now - ts < RESET_WINDOW_MS);
+  validAttempts.push(now);
+  resetAttempts.set(email, validAttempts);
+}
+
+function clearResetFailures(email) {
+  if (!email) return;
+  resetAttempts.delete(email);
+}
+
+/**
+ * 4. POST /api/auth/reset-password
+ * Password reset flow using TOTP code verification with rate limiting.
+ */
+router.post('/auth/reset-password', async (req, res) => {
+  const { email, code, newPassword } = req.body;
+  const normalizedEmail = (email || '').toLowerCase().trim();
+
+  // Check in-memory rate limiter: after 5 failed attempts within 15 minutes, return 429
+  if (normalizedEmail && isResetRateLimited(normalizedEmail)) {
+    return res.status(429).json({ error: 'Too many attempts. Try again later.' });
+  }
+
+  // Validate newPassword rule: min 8 characters, at least 1 letter, and at least 1 number
+  if (!newPassword || newPassword.length < 8 || !/[a-zA-Z]/.test(newPassword) || !/\d/.test(newPassword)) {
+    return res.status(400).json({
+      error: 'Password must be at least 8 characters long and contain both letters and numbers.'
+    });
+  }
+
+  // Check email and code presence
+  if (!email || !code) {
+    if (normalizedEmail) recordResetFailure(normalizedEmail);
+    return res.status(400).json({ error: 'Invalid email or code.' });
+  }
+
+  try {
+    // Find the user by email; require status 'active'
+    const user = await prisma.user.findUnique({
+      where: { email }
+    });
+
+    if (!user || user.status !== 'active' || !user.totp_secret) {
+      if (normalizedEmail) recordResetFailure(normalizedEmail);
+      return res.status(400).json({ error: 'Invalid email or code.' });
+    }
+
+    // Verify code against user's totp_secret with speakeasy (window: 1)
+    const verified = speakeasy.totp.verify({
+      secret: user.totp_secret,
+      encoding: 'base32',
+      token: String(code).trim(),
+      window: 1
+    });
+
+    if (!verified) {
+      if (normalizedEmail) recordResetFailure(normalizedEmail);
+      return res.status(400).json({ error: 'Invalid email or code.' });
+    }
+
+    // Hash with bcrypt and update password_hash
+    const password_hash = await bcrypt.hash(newPassword, 10);
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { password_hash }
+    });
+
+    // Reset the counter on success
+    clearResetFailures(normalizedEmail);
+
+    return res.status(200).json({ message: 'Password reset successful.' });
 
   } catch (error) {
-    return res.status(500).json({ error: 'Internal server error during 2FA verification.' });
+    return res.status(500).json({ error: 'Internal server error during password reset.' });
   }
 });
 

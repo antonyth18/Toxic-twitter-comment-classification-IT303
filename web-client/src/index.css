@@ -4,6 +4,28 @@
 
 @layer base {
   body {
-    @apply bg-[#0b0f19] text-slate-100;
+    @apply min-h-screen font-sans text-slate-800 antialiased;
+    background: linear-gradient(180deg, #3b2f7a 0%, #b0529a 50%, #f9dfe6 100%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+    background-size: cover;
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply bg-white/80 backdrop-blur-md rounded-2xl shadow-xl shadow-purple-950/10 border border-white/60 text-slate-800;
+  }
+
+  .btn-primary {
+    @apply rounded-full bg-sky-500 hover:bg-sky-400 text-white font-semibold transition-all shadow-md shadow-sky-500/25 active:scale-[0.98] px-6 py-2.5 inline-flex items-center justify-center cursor-pointer;
+  }
+
+  .btn-outline {
+    @apply rounded-full border border-white bg-transparent hover:bg-white/15 text-white font-semibold transition-all active:scale-[0.98] px-5 py-2 inline-flex items-center justify-center cursor-pointer;
+  }
+
+  .display-title {
+    @apply font-display font-bold uppercase tracking-tight text-white;
   }
 }

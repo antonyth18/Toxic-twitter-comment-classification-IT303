@@ -7,6 +7,7 @@ import TwoFactorVerifyPage from './pages/TwoFactorVerifyPage';
 import HomePage from './pages/HomePage';
 import HistoryPage from './pages/HistoryPage';
 import AdminDashboardPage from './pages/AdminDashboardPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 
 export default function App() {
   return (
@@ -15,6 +16,7 @@ export default function App() {
         <Route path="/" element={<Landing />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/verify-2fa" element={<TwoFactorVerifyPage />} />
         <Route path="/home" element={<HomePage />} />
         <Route path="/history" element={<HistoryPage />} />

@@ -22,10 +22,18 @@ describe('Authentication & 2FA Integration Tests', () => {
 
   beforeAll(async () => {
     // Delete any leftover test data
+    await prisma.activityLog.deleteMany({
+      where: {
+        actor_id: {
+          in: [registerPayload.email, adminPayload.email, 'lockout_tester@test.com', 'unknown_ghost_user@test.com']
+        }
+      }
+    });
+
     await prisma.user.deleteMany({
       where: {
         email: {
-          in: [registerPayload.email, adminPayload.email]
+          in: [registerPayload.email, adminPayload.email, 'lockout_tester@test.com']
         }
       }
     });
@@ -49,10 +57,17 @@ describe('Authentication & 2FA Integration Tests', () => {
 
   afterAll(async () => {
     // Clean up test database records
+    await prisma.activityLog.deleteMany({
+      where: {
+        actor_id: {
+          in: [registerPayload.email, adminPayload.email, 'lockout_tester@test.com', 'unknown_ghost_user@test.com']
+        }
+      }
+    });
     await prisma.user.deleteMany({
       where: {
         email: {
-          in: [registerPayload.email, adminPayload.email]
+          in: [registerPayload.email, adminPayload.email, 'lockout_tester@test.com']
         }
       }
     });
@@ -214,6 +229,139 @@ describe('Authentication & 2FA Integration Tests', () => {
       expect(res.status).toBe(200);
       expect(res.body).toHaveProperty('token');
       expect(res.body.user).toHaveProperty('role', 'ADMIN');
+    });
+  });
+
+  describe('5. Password Reset Flow: POST /api/auth/reset-password', () => {
+    const newPassword = 'NewResetPassword123!';
+    const weakPassword = 'weak';
+
+    it('should reject reset attempt with weak new password', async () => {
+      const res = await request(app)
+        .post('/api/auth/reset-password')
+        .send({
+          email: registerPayload.email,
+          code: '123456',
+          newPassword: weakPassword
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toContain('Password must be at least 8 characters');
+    });
+
+    it('should reject reset attempt with unknown email and return generic error', async () => {
+      const res = await request(app)
+        .post('/api/auth/reset-password')
+        .send({
+          email: 'unknown_ghost_user@test.com',
+          code: '123456',
+          newPassword
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body).toHaveProperty('error', 'Invalid email or code.');
+    });
+
+    it('should reject reset attempt with wrong 2FA code and return generic error', async () => {
+      const res = await request(app)
+        .post('/api/auth/reset-password')
+        .send({
+          email: registerPayload.email,
+          code: '000000',
+          newPassword
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body).toHaveProperty('error', 'Invalid email or code.');
+    });
+
+    it('should lock out requests after 5 failed attempts for the same email', async () => {
+      const lockoutEmail = 'lockout_tester@test.com';
+
+      // 5 failed attempts
+      for (let i = 0; i < 5; i++) {
+        const failRes = await request(app)
+          .post('/api/auth/reset-password')
+          .send({
+            email: lockoutEmail,
+            code: '999999',
+            newPassword
+          });
+        expect(failRes.status).toBe(400);
+        expect(failRes.body).toHaveProperty('error', 'Invalid email or code.');
+      }
+
+      // 6th attempt should return 429
+      const blockedRes = await request(app)
+        .post('/api/auth/reset-password')
+        .send({
+          email: lockoutEmail,
+          code: '999999',
+          newPassword
+        });
+
+      expect(blockedRes.status).toBe(429);
+      expect(blockedRes.body).toHaveProperty('error', 'Too many attempts. Try again later.');
+    });
+
+    it('should successfully reset password with valid email and code', async () => {
+      const validCode = speakeasy.totp({
+        secret: savedUserSecret,
+        encoding: 'base32'
+      });
+
+      const res = await request(app)
+        .post('/api/auth/reset-password')
+        .send({
+          email: registerPayload.email,
+          code: validCode,
+          newPassword
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body).toHaveProperty('message', 'Password reset successful.');
+    });
+
+    it('should allow user to log in with new password and reject old password', async () => {
+      // Old password should now be rejected
+      const oldLoginRes = await request(app)
+        .post('/api/auth/login')
+        .send({
+          email: registerPayload.email,
+          password: registerPayload.password
+        });
+
+      expect(oldLoginRes.status).toBe(401);
+      expect(oldLoginRes.body).toHaveProperty('error', 'Invalid email or password.');
+
+      // New password should be accepted and return tempToken
+      const newLoginRes = await request(app)
+        .post('/api/auth/login')
+        .send({
+          email: registerPayload.email,
+          password: newPassword
+        });
+
+      expect(newLoginRes.status).toBe(200);
+      expect(newLoginRes.body).toHaveProperty('tempToken');
+    });
+
+    it('should ensure the logged row never contains the plaintext password or code', async () => {
+      const log = await prisma.activityLog.findFirst({
+        where: {
+          actor_id: registerPayload.email,
+          action_type: 'POST_API_AUTH_RESET_PASSWORD'
+        },
+        orderBy: { timestamp: 'desc' }
+      });
+
+      expect(log).toBeDefined();
+      expect(log.details_json.requestBody.newPassword).toBe('[REDACTED]');
+      expect(log.details_json.requestBody.code).toBe('[REDACTED]');
+
+      const logString = JSON.stringify(log.details_json);
+      expect(logString).not.toContain(newPassword);
+      expect(logString).not.toContain('"code":"');
     });
   });
 });
