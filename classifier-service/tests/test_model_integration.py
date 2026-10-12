@@ -26,6 +26,16 @@ def test_real_model_separates_clean_and_toxic(classifier):
     assert "insult" in toxic.subcategories
 
 
+def test_urls_and_mentions_are_normalized_like_training(classifier):
+    # Same text with and without a URL/@mention should score identically once
+    # both are mapped to the <URL>/<USER> placeholders used in training.
+    a, b = classifier.predict_probabilities([
+        "@alice you are an idiot http://example.com/a",
+        "@bob you are an idiot https://other.org/b",
+    ])
+    assert a == pytest.approx(b)
+
+
 def test_long_input_is_truncated_not_rejected(classifier):
     [pred] = classifier.predict(["word " * 2000])  # far beyond 256 tokens
     assert pred.label in {"toxic", "normal"}

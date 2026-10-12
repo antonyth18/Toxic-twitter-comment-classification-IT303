@@ -1,6 +1,6 @@
 const prisma = require('../prisma');
 
-const SENSITIVE_KEYS = ['password', 'token', 'tempToken', 'totp_secret'];
+const SENSITIVE_KEYS = ['password', 'token', 'tempToken', 'totp_secret', 'newPassword', 'code'];
 
 /**
  * Recursively redacts sensitive keys from an object or array.
@@ -45,6 +45,7 @@ function auditLogger(req, res, next) {
       url === '/api/admin/login' || 
       url === '/api/auth/register' || 
       url === '/api/auth/2fa/verify' ||
+      url === '/api/auth/reset-password' ||
       url.startsWith('/api/admin') ||
       url.startsWith('/api/feed');
 

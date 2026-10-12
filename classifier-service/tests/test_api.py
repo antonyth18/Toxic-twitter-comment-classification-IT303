@@ -28,6 +28,17 @@ def client():
     main.app.state.classifier = None
 
 
+def test_degraded_mode_when_model_missing(monkeypatch, tmp_path):
+    monkeypatch.setattr(main, "MODEL_DIR", tmp_path)  # no model here
+    main.app.state.classifier = None
+    with TestClient(main.app) as c:
+        health = c.get("/health").json()
+        assert health["status"] == "degraded"
+        assert health["model_loaded"] is False
+        assert c.post("/classify", json={"text": "hello"}).status_code == 503
+        assert c.post("/classify/batch", json={"texts": ["hello"]}).status_code == 503
+
+
 def test_health(client):
     body = client.get("/health").json()
     assert body["status"] == "ok"

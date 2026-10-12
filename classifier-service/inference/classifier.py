@@ -20,6 +20,11 @@ from pathlib import Path
 import torch
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
+# Same normalization the training data went through (URLs -> <URL>,
+# @mentions -> <USER>, whitespace collapsing) so inference input matches
+# what the model saw during training.
+from preprocessing.preprocess import normalize_text
+
 LABEL_COLUMNS: list[str] = [
     "toxic",
     "severe_toxic",
@@ -108,6 +113,7 @@ class ToxicityClassifier:
         self._lock = threading.Lock()
 
     def predict_probabilities(self, texts: list[str]) -> list[dict[str, float]]:
+        texts = [normalize_text(t) or t.strip() for t in texts]
         results: list[dict[str, float]] = []
         for start in range(0, len(texts), INFERENCE_BATCH_SIZE):
             chunk = texts[start : start + INFERENCE_BATCH_SIZE]

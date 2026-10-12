@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
+import client from '../api/client';
 import { 
   ShieldAlert, 
   Shield, 
@@ -18,70 +19,64 @@ import {
   AlertTriangle, 
   UserCheck, 
   UserX, 
-  RefreshCw,
-  Clock,
-  Lock
+  Lock,
+  RefreshCw
 } from 'lucide-react';
 
-// Hardcoded placeholder activity logs
-const PLACEHOLDER_LOGS = [
-  {
-    id: 'log-101',
-    actor: 'admin@toxisense.com',
-    action_type: 'LOGIN',
-    timestamp: '2026-10-03T19:25:10.000Z',
-    outcome: 'SUCCESS',
-    details: 'Admin authentication completed with 2FA'
-  },
-  {
-    id: 'log-102',
-    actor: 'sarah.jenkins@company.org',
-    action_type: 'FEED_FETCH',
-    timestamp: '2026-10-03T18:42:00.000Z',
-    outcome: 'SUCCESS',
-    details: 'Extracted 5 tweets, 2 flagged toxic'
-  },
-  {
-    id: 'log-103',
-    actor: 'david.kim@university.edu',
-    action_type: '2FA_VERIFY',
-    timestamp: '2026-10-03T17:10:45.000Z',
-    outcome: 'FAILURE',
-    details: 'Invalid TOTP code attempted (drift exceeded)'
-  },
-  {
-    id: 'log-104',
-    actor: 'admin@toxisense.com',
-    action_type: 'USER_UPDATE',
-    timestamp: '2026-10-03T15:30:20.000Z',
-    outcome: 'SUCCESS',
-    details: 'Updated status for user david.kim@university.edu to inactive'
-  },
-  {
-    id: 'log-105',
-    actor: 'alex.morris@gmail.com',
-    action_type: 'CLASSIFY',
-    timestamp: '2026-10-03T14:12:00.000Z',
-    outcome: 'SUCCESS',
-    details: 'Single comment classified (insult flagged)'
-  },
-  {
-    id: 'log-106',
-    actor: 'elena.rostova@techcorp.io',
-    action_type: 'LOGIN',
-    timestamp: '2026-10-03T12:05:30.000Z',
-    outcome: 'SUCCESS',
-    details: 'User session initialized'
-  },
-  {
-    id: 'log-107',
-    actor: 'unknown_client',
-    action_type: 'ACCESS_ATTEMPT',
-    timestamp: '2026-10-03T10:40:15.000Z',
-    outcome: 'DENIED',
-    details: 'Unauthorized API request to /api/logs without valid JWT'
+// Helper to extract actor display name (email or shortened actor_id)
+function getActorDisplay(log) {
+  const email =
+    log.details_json?.requestBody?.email ||
+    log.details_json?.responseBody?.user?.email;
+
+  if (email && email !== '[REDACTED]') {
+    return email;
   }
-];
+
+  const actorId = log.actor_id || 'anonymous';
+  if (actorId.length > 16) {
+    return `${actorId.slice(0, 8)}...${actorId.slice(-4)}`;
+  }
+  return actorId;
+}
+
+// Helper to format action_type in a human-readable form
+function formatActionType(action) {
+  if (!action) return 'Unknown Action';
+  const mapping = {
+    'POST_API_AUTH_LOGIN': 'Login',
+    'POST_API_ADMIN_LOGIN': 'Admin Login',
+    'POST_API_AUTH_REGISTER': 'Register',
+    'POST_API_AUTH_2FA_VERIFY': '2FA Verification',
+    'POST_API_AUTH_RESET_PASSWORD': 'Password Reset',
+    'POST_API_FEED_CLASSIFY': 'Classify Comment',
+    'POST_API_FEED_FETCH': 'Fetch Feed',
+    'GET_API_FEED_HISTORY': 'Feed History',
+    'GET_API_LOGS': 'Retrieve Logs',
+  };
+  if (mapping[action]) {
+    return mapping[action];
+  }
+  return action
+    .replace(/^([A-Z]+)_API_/, '$1 ')
+    .replace(/_/g, ' ');
+}
+
+// Helper to format details snippet
+function formatDetailsSnippet(details) {
+  if (!details) return '-';
+  if (typeof details === 'string') return details;
+  if (details.responseBody?.error) {
+    return `Error: ${details.responseBody.error}`;
+  }
+  if (details.responseBody?.message) {
+    return details.responseBody.message;
+  }
+  if (details.path) {
+    return `${details.method || ''} ${details.path} (${details.statusCode || 200})`.trim();
+  }
+  return JSON.stringify(details);
+}
 
 // Hardcoded placeholder users
 const INITIAL_PLACEHOLDER_USERS = [
@@ -142,58 +137,85 @@ export default function AdminDashboardPage() {
   // Active tab state: 'logs' | 'users'
   const [activeTab, setActiveTab] = useState('logs');
 
-  // Activity Logs filtering & pagination state
+  // Activity Logs filtering, pagination & live data state
+  const [logs, setLogs] = useState([]);
+  const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0, pages: 1 });
+  const [loadingLogs, setLoadingLogs] = useState(true);
+  const [logsError, setLogsError] = useState(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
   const [userQuery, setUserQuery] = useState('');
+  const [debouncedUser, setDebouncedUser] = useState('');
   const [actionTypeQuery, setActionTypeQuery] = useState('ALL');
   const [dateRangeQuery, setDateRangeQuery] = useState('');
   const [logPage, setLogPage] = useState(1);
-  const logsPerPage = 5;
 
-  // =========================================================================
-  // TODO: Wire in GET /api/logs here to replace the hardcoded activity log rows.
-  //
-  // Example future implementation:
-  // useEffect(() => {
-  //   async function loadLogs() {
-  //     const res = await client.get('/api/logs', {
-  //       params: { user: userQuery, action: actionTypeQuery, date: dateRangeQuery, page: logPage }
-  //     });
-  //     setLogs(res.data.logs);
-  //   }
-  //   loadLogs();
-  // }, [userQuery, actionTypeQuery, dateRangeQuery, logPage]);
-  // =========================================================================
-  const [logs, setLogs] = useState(PLACEHOLDER_LOGS);
+  // Debounce the user filter by ~400ms
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedUser(userQuery.trim());
+      setLogPage(1);
+    }, 400);
 
-  // Filter logs locally for placeholder presentation
-  const filteredLogs = logs.filter((log) => {
-    if (userQuery && !log.actor.toLowerCase().includes(userQuery.toLowerCase())) {
-      return false;
-    }
-    if (actionTypeQuery !== 'ALL' && log.action_type !== actionTypeQuery) {
-      return false;
-    }
-    if (dateRangeQuery && !log.timestamp.startsWith(dateRangeQuery)) {
-      return false;
-    }
-    return true;
-  });
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [userQuery]);
 
-  const totalLogPages = Math.ceil(filteredLogs.length / logsPerPage) || 1;
-  const currentLogs = filteredLogs.slice((logPage - 1) * logsPerPage, logPage * logsPerPage);
+  // Load logs in a useEffect that re-runs when filters or page change
+  useEffect(() => {
+    let isCancelled = false;
+
+    const fetchLogs = async () => {
+      setLoadingLogs(true);
+      setLogsError(null);
+
+      try {
+        const params = {
+          page: logPage,
+          limit: 10
+        };
+
+        if (debouncedUser) {
+          params.user = debouncedUser;
+        }
+
+        if (actionTypeQuery && actionTypeQuery !== 'ALL') {
+          params.action = actionTypeQuery;
+        }
+
+        if (dateRangeQuery) {
+          params.date = dateRangeQuery;
+        }
+
+        const res = await client.get('/api/logs', { params });
+        if (!isCancelled) {
+          setLogs(res.data?.logs || []);
+          setPagination(res.data?.pagination || { page: logPage, limit: 10, total: 0, pages: 1 });
+        }
+      } catch (err) {
+        if (!isCancelled) {
+          console.error('Error fetching activity logs:', err);
+          const serverErr = err.response?.data?.error;
+          setLogsError(serverErr || (err.code === 'ECONNABORTED'
+            ? 'Request timed out while connecting to the server.'
+            : 'Unable to load activity logs from server. Please verify backend connection.'));
+        }
+      } finally {
+        if (!isCancelled) {
+          setLoadingLogs(false);
+        }
+      }
+    };
+
+    fetchLogs();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [debouncedUser, actionTypeQuery, dateRangeQuery, logPage, refreshKey]);
 
   // User Management state
-  // =========================================================================
-  // TODO: Wire in GET /api/admin/users and PATCH /api/admin/users/:id here
-  // to fetch users and persist active/inactive state changes.
-  //
-  // Example future implementation:
-  // const toggleUserStatus = async (user) => {
-  //   const updatedStatus = user.status === 'active' ? 'inactive' : 'active';
-  //   await client.patch(`/api/admin/users/${user.id}`, { status: updatedStatus });
-  //   setUsers(users.map(u => u.id === user.id ? { ...u, status: updatedStatus } : u));
-  // };
-  // =========================================================================
   const [users, setUsers] = useState(INITIAL_PLACEHOLDER_USERS);
 
   // Confirmation modal state before deactivating
@@ -228,25 +250,22 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] text-slate-100 flex flex-col font-sans selection:bg-purple-500/30 selection:text-purple-200">
-      {/* Navigation Bar with subtle "Admin Mode" visual cues */}
-      <header className="sticky top-0 z-50 backdrop-blur-xl bg-[#0b0f19]/85 border-b border-purple-900/40 shadow-lg shadow-purple-950/20">
-        {/* Top ambient Admin mode accent line */}
-        <div className="h-0.5 w-full bg-gradient-to-r from-purple-500 via-indigo-500 to-rose-500" />
-
+    <div className="min-h-screen flex flex-col font-sans">
+      {/* Navigation Bar with transparent backdrop and white text */}
+      <header className="sticky top-0 z-50 backdrop-blur-md bg-transparent border-b border-white/15">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          {/* Logo with "ADMIN" badge visual cue */}
+          {/* Logo with "ADMIN CONSOLE" badge visual cue */}
           <Link to="/" className="flex items-center gap-2.5 group">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 p-0.5 shadow-lg shadow-purple-500/25 group-hover:shadow-purple-500/45 transition-all">
-              <div className="w-full h-full bg-[#0b0f19] rounded-[10px] flex items-center justify-center">
-                <Shield className="w-5 h-5 text-purple-400 group-hover:scale-110 transition-transform" />
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-400 to-rose-400 p-0.5 shadow-lg shadow-purple-900/20 group-hover:shadow-purple-900/40 transition-all">
+              <div className="w-full h-full bg-white/20 backdrop-blur-sm rounded-[10px] flex items-center justify-center">
+                <Shield className="w-5 h-5 text-white group-hover:scale-110 transition-transform" />
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className="font-bold text-lg bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+              <span className="font-bold text-lg text-white">
                 Toxisense
               </span>
-              <span className="text-[10px] font-extrabold tracking-widest uppercase px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm shadow-purple-500/20">
+              <span className="text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full bg-white/15 text-white border border-white/25">
                 ADMIN CONSOLE
               </span>
             </div>
@@ -256,7 +275,7 @@ export default function AdminDashboardPage() {
           <nav className="flex items-center gap-1.5 sm:gap-2">
             <Link
               to="/home"
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all"
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all"
             >
               <Sparkles className="w-4 h-4" />
               <span>Classifier</span>
@@ -264,7 +283,7 @@ export default function AdminDashboardPage() {
 
             <Link
               to="/history"
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 transition-all"
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-sm font-medium text-white/80 hover:text-white hover:bg-white/10 transition-all"
             >
               <HistoryIcon className="w-4 h-4" />
               <span>History</span>
@@ -272,17 +291,17 @@ export default function AdminDashboardPage() {
 
             <Link
               to="/admin"
-              className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium bg-purple-600/25 text-purple-300 border border-purple-500/40 transition-all"
+              className="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-sm font-medium bg-white/20 text-white border border-white/30 transition-all shadow-sm"
             >
               <Shield className="w-4 h-4" />
               <span>Admin</span>
             </Link>
 
-            <div className="h-5 w-px bg-slate-800 mx-1.5" />
+            <div className="h-5 w-px bg-white/20 mx-1.5" />
 
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-sm font-medium text-white/80 hover:text-white hover:bg-white/15 border border-transparent hover:border-white/20 transition-all cursor-pointer"
               title="Clear session and log out"
             >
               <LogOut className="w-4 h-4" />
@@ -294,35 +313,29 @@ export default function AdminDashboardPage() {
 
       {/* Main Container */}
       <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 relative">
-        {/* Subtle Purple-Indigo Ambient Glow for Admin Mode */}
-        <div className="absolute top-12 left-1/2 -translate-x-1/2 w-[650px] h-[320px] bg-gradient-to-tr from-purple-600/15 via-indigo-600/10 to-rose-600/10 blur-[130px] rounded-full pointer-events-none" />
-
         {/* Page Title & Admin Mode Badge */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 relative z-10">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/15 border border-purple-500/30 text-purple-300 text-xs font-semibold mb-2.5">
+            <div className="inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-white/15 border border-white/25 text-white text-xs font-semibold mb-2.5 backdrop-blur-sm">
               <Lock className="w-3.5 h-3.5" />
               <span>Authorized System Administrator</span>
             </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-              Administrative{' '}
-              <span className="bg-gradient-to-r from-purple-400 via-indigo-300 to-rose-400 bg-clip-text text-transparent">
-                Command Center
-              </span>
+            <h1 className="display-title text-4xl sm:text-6xl text-white">
+              Administrative Command Center
             </h1>
-            <p className="text-sm text-slate-400 mt-1 max-w-xl">
+            <p className="text-sm text-white/90 mt-1 max-w-xl">
               Inspect system audit trails, filter activity events, and manage user authorization statuses.
             </p>
           </div>
 
           {/* Section Tabs */}
-          <div className="flex p-1 rounded-xl bg-slate-900/90 border border-slate-800 shadow-lg">
+          <div className="flex p-1 rounded-full glass-card shadow-lg self-start sm:self-auto">
             <button
               onClick={() => setActiveTab('logs')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === 'logs'
-                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-600/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                  ? 'bg-sky-500 text-white shadow-md shadow-sky-500/25'
+                  : 'text-slate-600 hover:text-slate-800'
               }`}
             >
               <Activity className="w-4 h-4" />
@@ -331,10 +344,10 @@ export default function AdminDashboardPage() {
 
             <button
               onClick={() => setActiveTab('users')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold transition-all cursor-pointer ${
                 activeTab === 'users'
-                  ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md shadow-purple-600/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                  ? 'bg-sky-500 text-white shadow-md shadow-sky-500/25'
+                  : 'text-slate-600 hover:text-slate-800'
               }`}
             >
               <Users className="w-4 h-4" />
@@ -349,8 +362,8 @@ export default function AdminDashboardPage() {
         {activeTab === 'logs' && (
           <div className="space-y-6 relative z-10 animate-in fade-in duration-200">
             {/* Filter Controls Bar */}
-            <div className="rounded-2xl bg-slate-900/80 border border-slate-800 backdrop-blur-xl p-5 shadow-xl">
-              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-purple-300 mb-3.5">
+            <div className="glass-card p-5 shadow-xl">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-700 mb-3.5">
                 <Filter className="w-3.5 h-3.5" />
                 <span>Filter Activity Logs</span>
               </div>
@@ -358,11 +371,11 @@ export default function AdminDashboardPage() {
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 {/* User / Actor Search */}
                 <div>
-                  <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                  <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
                     Actor / User
                   </label>
                   <div className="relative">
-                    <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="text"
                       value={userQuery}
@@ -371,14 +384,14 @@ export default function AdminDashboardPage() {
                         setLogPage(1);
                       }}
                       placeholder="Search email or actor..."
-                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-slate-300 text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20"
                     />
                   </div>
                 </div>
 
                 {/* Action Type Filter */}
                 <div>
-                  <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                  <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
                     Action Type
                   </label>
                   <select
@@ -387,25 +400,25 @@ export default function AdminDashboardPage() {
                       setActionTypeQuery(e.target.value);
                       setLogPage(1);
                     }}
-                    className="w-full px-3 py-2 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-white focus:outline-none focus:border-purple-500 cursor-pointer"
+                    className="w-full px-3 py-2 rounded-xl bg-white border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 cursor-pointer"
                   >
-                    <option value="ALL">All Action Types</option>
+                    <option value="ALL">ALL</option>
                     <option value="LOGIN">LOGIN</option>
-                    <option value="2FA_VERIFY">2FA_VERIFY</option>
-                    <option value="FEED_FETCH">FEED_FETCH</option>
-                    <option value="USER_UPDATE">USER_UPDATE</option>
+                    <option value="REGISTER">REGISTER</option>
+                    <option value="2FA">2FA</option>
+                    <option value="FEED">FEED</option>
                     <option value="CLASSIFY">CLASSIFY</option>
-                    <option value="ACCESS_ATTEMPT">ACCESS_ATTEMPT</option>
+                    <option value="RESET">RESET</option>
                   </select>
                 </div>
 
                 {/* Date Range / Specific Date Filter */}
                 <div>
-                  <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                  <label className="block text-[11px] font-semibold uppercase tracking-wider text-slate-600 mb-1.5">
                     Date Filter
                   </label>
                   <div className="relative">
-                    <Calendar className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Calendar className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input
                       type="date"
                       value={dateRangeQuery}
@@ -413,83 +426,132 @@ export default function AdminDashboardPage() {
                         setDateRangeQuery(e.target.value);
                         setLogPage(1);
                       }}
-                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-slate-950/70 border border-slate-800 text-xs text-white focus:outline-none focus:border-purple-500 cursor-pointer"
+                      className="w-full pl-9 pr-3 py-2 rounded-xl bg-white border border-slate-300 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 cursor-pointer"
                     />
                   </div>
                 </div>
               </div>
             </div>
 
+            {/* Error Banner */}
+            {logsError && (
+              <div className="p-4 rounded-xl bg-red-50 border border-red-200 text-red-700 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs animate-in fade-in">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                  <span className="font-medium">{logsError}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setRefreshKey((k) => k + 1)}
+                  className="px-3.5 py-1 rounded-full bg-red-600 hover:bg-red-500 text-white font-semibold text-xs transition-colors shrink-0 cursor-pointer inline-flex items-center gap-1.5"
+                >
+                  <RefreshCw className="w-3 h-3" />
+                  <span>Retry</span>
+                </button>
+              </div>
+            )}
+
             {/* Logs Table */}
-            <div className="rounded-2xl bg-slate-900/80 border border-slate-800 backdrop-blur-xl overflow-hidden shadow-2xl">
-              <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
-                <span className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <Activity className="w-4 h-4 text-purple-400" />
-                  <span>Activity Log Entries ({filteredLogs.length})</span>
+            <div className="glass-card overflow-hidden shadow-2xl">
+              <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                  <Activity className="w-4 h-4 text-purple-700" />
+                  <span>Activity Log Entries ({pagination.total})</span>
                 </span>
-                <span className="text-xs text-slate-400 font-mono">
-                  Page {logPage} of {totalLogPages}
+                <span className="text-xs text-slate-500 font-mono">
+                  Page {pagination.page} of {pagination.pages || 1}
                 </span>
               </div>
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-950/70 text-slate-400 border-b border-slate-800 font-semibold uppercase tracking-wider">
+                  <thead className="bg-slate-100/90 text-slate-700 border-b border-slate-200 font-semibold uppercase tracking-wider">
                     <tr>
                       <th className="py-3.5 px-6">Actor</th>
-                      <th className="py-3.5 px-6">Action Type</th>
+                      <th className="py-3.5 px-6">Action</th>
                       <th className="py-3.5 px-6">Timestamp</th>
                       <th className="py-3.5 px-6">Outcome</th>
                       <th className="py-3.5 px-6">Details</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60 font-sans">
-                    {currentLogs.length === 0 ? (
+                  <tbody className="divide-y divide-slate-200/80 font-sans">
+                    {loadingLogs ? (
                       <tr>
                         <td colSpan={5} className="py-12 text-center text-slate-500">
-                          No log entries match the selected filters.
+                          <div className="flex items-center justify-center gap-2 text-xs font-medium text-slate-600">
+                            <span className="inline-block w-4 h-4 border-2 border-indigo-600/30 border-t-indigo-600 rounded-full animate-spin" />
+                            <span>Loading activity logs...</span>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : logs.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="py-12 text-center text-slate-500 text-xs font-medium">
+                          No log entries match these filters.
                         </td>
                       </tr>
                     ) : (
-                      currentLogs.map((log) => {
-                        const isSuccess = log.outcome === 'SUCCESS';
-                        const isDenied = log.outcome === 'DENIED';
+                      logs.map((log) => {
+                        const actorDisplay = getActorDisplay(log);
+                        const actionReadable = formatActionType(log.action_type);
+                        const outcome = (log.details_json?.outcome || log.outcome || '').toLowerCase();
+                        const isSuccess = outcome === 'success';
 
                         return (
-                          <tr key={log.id} className="hover:bg-slate-800/40 transition-colors">
-                            <td className="py-3.5 px-6 text-slate-200 font-mono font-medium">
-                              {log.actor}
-                            </td>
+                          <tr key={log.id} className="hover:bg-purple-50/40 transition-colors">
+                            {/* Actor with actor_type badge */}
                             <td className="py-3.5 px-6">
-                              <span className="px-2.5 py-1 rounded-md text-[11px] font-bold uppercase tracking-wider bg-purple-500/10 text-purple-300 border border-purple-500/25">
-                                {log.action_type}
-                              </span>
+                              <div className="flex flex-col gap-1 items-start">
+                                <span className="text-slate-800 font-mono font-medium text-xs">
+                                  {actorDisplay}
+                                </span>
+                                <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase border ${
+                                  log.actor_type === 'ADMIN'
+                                    ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                    : log.actor_type === 'USER'
+                                    ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
+                                    : 'bg-slate-100 text-slate-600 border-slate-200'
+                                }`}>
+                                  {log.actor_type || 'GUEST'}
+                                </span>
+                              </div>
                             </td>
-                            <td className="py-3.5 px-6 text-slate-400 font-mono whitespace-nowrap">
+
+                            {/* Action in readable form */}
+                            <td className="py-3.5 px-6">
+                              <div className="flex flex-col gap-0.5">
+                                <span className="font-semibold text-slate-800 text-xs">
+                                  {actionReadable}
+                                </span>
+                                <span className="font-mono text-[10px] text-slate-500">
+                                  {log.action_type}
+                                </span>
+                              </div>
+                            </td>
+
+                            {/* Timestamp */}
+                            <td className="py-3.5 px-6 text-slate-600 font-mono whitespace-nowrap text-xs">
                               {new Date(log.timestamp).toLocaleString()}
                             </td>
+
+                            {/* Outcome: Green or Red badge */}
                             <td className="py-3.5 px-6 whitespace-nowrap">
-                              {isSuccess && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                                  <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                              {isSuccess ? (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-green-50 text-green-700 border border-green-200">
+                                  <CheckCircle2 className="w-3 h-3 text-green-600" />
                                   <span>SUCCESS</span>
                                 </span>
-                              )}
-                              {isDenied && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-rose-500/15 text-rose-300 border border-rose-500/30">
-                                  <XCircle className="w-3 h-3 text-rose-400" />
-                                  <span>DENIED</span>
-                                </span>
-                              )}
-                              {!isSuccess && !isDenied && (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                                  <AlertTriangle className="w-3 h-3 text-amber-400" />
-                                  <span>{log.outcome}</span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-red-50 text-red-700 border border-red-200">
+                                  <XCircle className="w-3 h-3 text-red-600" />
+                                  <span>FAILURE</span>
                                 </span>
                               )}
                             </td>
-                            <td className="py-3.5 px-6 text-slate-400 max-w-xs truncate">
-                              {log.details}
+
+                            {/* Details */}
+                            <td className="py-3.5 px-6 text-slate-600 max-w-xs truncate text-xs" title={typeof log.details_json === 'object' ? JSON.stringify(log.details_json) : log.details}>
+                              {formatDetailsSnippet(log.details_json || log.details)}
                             </td>
                           </tr>
                         );
@@ -499,25 +561,27 @@ export default function AdminDashboardPage() {
                 </table>
               </div>
 
-              {/* Pagination Controls */}
-              <div className="px-6 py-4 border-t border-slate-800 flex items-center justify-between">
+              {/* Pagination Controls driven by pagination.pages */}
+              <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
                 <button
+                  type="button"
                   onClick={() => setLogPage((p) => Math.max(1, p - 1))}
-                  disabled={logPage <= 1}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-slate-300 transition-colors"
+                  disabled={logPage <= 1 || loadingLogs}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white border border-slate-300 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-slate-700 transition-colors shadow-sm cursor-pointer"
                 >
                   <ChevronLeft className="w-4 h-4" />
                   <span>Previous</span>
                 </button>
 
-                <span className="text-xs text-slate-400">
-                  Showing page <span className="font-semibold text-white">{logPage}</span> of {totalLogPages}
+                <span className="text-xs text-slate-600 font-medium">
+                  Showing page <span className="font-semibold text-slate-800">{pagination.page || logPage}</span> of {pagination.pages || 1}
                 </span>
 
                 <button
-                  onClick={() => setLogPage((p) => Math.min(totalLogPages, p + 1))}
-                  disabled={logPage >= totalLogPages}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-slate-300 transition-colors"
+                  type="button"
+                  onClick={() => setLogPage((p) => Math.min(pagination.pages || 1, p + 1))}
+                  disabled={logPage >= (pagination.pages || 1) || loadingLogs}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-white border border-slate-300 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed text-xs font-semibold text-slate-700 transition-colors shadow-sm cursor-pointer"
                 >
                   <span>Next</span>
                   <ChevronRight className="w-4 h-4" />
@@ -532,14 +596,14 @@ export default function AdminDashboardPage() {
         {/* ========================================================================= */}
         {activeTab === 'users' && (
           <div className="space-y-6 relative z-10 animate-in fade-in duration-200">
-            <div className="rounded-2xl bg-slate-900/80 border border-slate-800 backdrop-blur-xl overflow-hidden shadow-2xl">
-              <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
+            <div className="glass-card overflow-hidden shadow-2xl">
+              <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between">
                 <div>
-                  <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                    <Users className="w-4 h-4 text-purple-400" />
+                  <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                    <Users className="w-4 h-4 text-purple-700" />
                     <span>User Accounts Directory ({users.length})</span>
                   </h2>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <p className="text-xs text-slate-600 mt-0.5">
                     Manage authentication permissions and active account statuses
                   </p>
                 </div>
@@ -547,7 +611,7 @@ export default function AdminDashboardPage() {
 
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-slate-950/70 text-slate-400 border-b border-slate-800 font-semibold uppercase tracking-wider">
+                  <thead className="bg-slate-100/90 text-slate-700 border-b border-slate-200 font-semibold uppercase tracking-wider">
                     <tr>
                       <th className="py-3.5 px-6">User Email</th>
                       <th className="py-3.5 px-6">Role</th>
@@ -556,21 +620,21 @@ export default function AdminDashboardPage() {
                       <th className="py-3.5 px-6 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60 font-sans">
+                  <tbody className="divide-y divide-slate-200/80 font-sans">
                     {users.map((user) => {
                       const isActive = user.status === 'active';
 
                       return (
-                        <tr key={user.id} className="hover:bg-slate-800/40 transition-colors">
-                          <td className="py-3.5 px-6 text-slate-200 font-mono font-medium">
+                        <tr key={user.id} className="hover:bg-purple-50/40 transition-colors">
+                          <td className="py-3.5 px-6 text-slate-800 font-mono font-medium">
                             {user.email}
                           </td>
                           <td className="py-3.5 px-6">
                             <span
-                              className={`px-2.5 py-0.5 rounded text-[11px] font-extrabold uppercase tracking-wider ${
+                              className={`px-2.5 py-0.5 rounded text-[11px] font-bold uppercase tracking-wider ${
                                 user.role === 'ADMIN'
-                                  ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
-                                  : 'bg-indigo-500/10 text-indigo-300 border border-indigo-500/20'
+                                  ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                                  : 'bg-slate-100 text-slate-700 border border-slate-200'
                               }`}
                             >
                               {user.role}
@@ -578,25 +642,25 @@ export default function AdminDashboardPage() {
                           </td>
                           <td className="py-3.5 px-6">
                             {isActive ? (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-green-50 text-green-700 border border-green-200">
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-600" />
                                 <span>Active</span>
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-rose-500/15 text-rose-300 border border-rose-500/30">
-                                <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-50 text-red-700 border border-red-200">
+                                <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
                                 <span>Inactive</span>
                               </span>
                             )}
                           </td>
-                          <td className="py-3.5 px-6 text-slate-400 font-mono">
+                          <td className="py-3.5 px-6 text-slate-600 font-mono">
                             {user.createdAt}
                           </td>
                           <td className="py-3.5 px-6 text-right">
                             {isActive ? (
                               <button
                                 onClick={() => handleToggleStatus(user)}
-                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 text-xs font-semibold transition-all hover:scale-[1.02] cursor-pointer"
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 text-xs font-semibold transition-all hover:scale-[1.02] cursor-pointer"
                               >
                                 <UserX className="w-3.5 h-3.5" />
                                 <span>Deactivate</span>
@@ -604,7 +668,7 @@ export default function AdminDashboardPage() {
                             ) : (
                               <button
                                 onClick={() => handleToggleStatus(user)}
-                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition-all hover:scale-[1.02] cursor-pointer"
+                                className="inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-green-50 hover:bg-green-100 text-green-700 border border-green-200 text-xs font-semibold transition-all hover:scale-[1.02] cursor-pointer"
                               >
                                 <UserCheck className="w-3.5 h-3.5" />
                                 <span>Activate</span>
@@ -623,18 +687,18 @@ export default function AdminDashboardPage() {
 
         {/* CONFIRMATION MODAL BEFORE DEACTIVATION */}
         {confirmDeactivateUser && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="w-full max-w-md rounded-2xl bg-slate-900 border border-slate-800 p-6 shadow-2xl relative z-10 text-center">
-              <div className="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center mx-auto mb-4 text-rose-400">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-indigo-950/40 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="glass-card w-full max-w-md p-6 shadow-2xl relative z-10 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-red-100 border border-red-200 flex items-center justify-center mx-auto mb-4 text-red-600">
                 <AlertTriangle className="w-6 h-6" />
               </div>
 
-              <h3 className="text-lg font-bold text-white mb-2">
+              <h3 className="display-title text-xl sm:text-2xl !text-slate-800 mb-2">
                 Confirm User Deactivation
               </h3>
 
-              <p className="text-sm text-slate-300 mb-2">
-                Are you sure you want to deactivate <strong className="text-rose-400 font-mono">{confirmDeactivateUser.email}</strong>?
+              <p className="text-sm text-slate-600 mb-2">
+                Are you sure you want to deactivate <strong className="text-red-700 font-mono">{confirmDeactivateUser.email}</strong>?
               </p>
 
               <p className="text-xs text-slate-500 mb-6">
@@ -645,7 +709,7 @@ export default function AdminDashboardPage() {
                 <button
                   type="button"
                   onClick={() => setConfirmDeactivateUser(null)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
+                  className="px-4 py-2 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold transition-colors cursor-pointer border border-slate-200"
                 >
                   Cancel
                 </button>
@@ -653,7 +717,7 @@ export default function AdminDashboardPage() {
                 <button
                   type="button"
                   onClick={confirmDeactivation}
-                  className="px-5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow-lg shadow-rose-600/30 transition-all cursor-pointer"
+                  className="px-5 py-2 rounded-full bg-red-600 hover:bg-red-500 text-white text-xs font-semibold shadow-lg shadow-red-600/30 transition-all cursor-pointer"
                 >
                   Confirm Deactivation
                 </button>

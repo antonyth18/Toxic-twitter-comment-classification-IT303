@@ -1,6 +1,6 @@
 import client from './client';
 
-export const USE_MOCK_AUTH = true;
+export const USE_MOCK_AUTH = false;
 
 // Pre-computed SVG QR code as base64 data URL
 const MOCK_QR_CODE = 'data:image/svg+xml;base64,' + btoa(`
