@@ -5,6 +5,8 @@ const { authenticateToken } = require('../middleware/auth');
 const router = express.Router();
 
 const CLASSIFIER_URL = process.env.CLASSIFIER_SERVICE_URL || 'http://localhost:8000';
+// A sleeping free-tier host can take ~60s to wake, so deployments raise this
+const CLASSIFIER_TIMEOUT_MS = Number(process.env.CLASSIFIER_TIMEOUT_MS) || 4000;
 
 // Pool of realistic simulated tweets (avoiding any paid Twitter/X API charges)
 const MOCK_TWEET_POOL = [
@@ -35,7 +37,7 @@ async function classifyComment(text) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ text }),
-      signal: AbortSignal.timeout(4000)
+      signal: AbortSignal.timeout(CLASSIFIER_TIMEOUT_MS)
     });
 
     if (response.ok) {
