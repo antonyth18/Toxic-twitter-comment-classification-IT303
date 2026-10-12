@@ -14,7 +14,7 @@ RUN npx prisma generate
 
 COPY . .
 
-EXPOSE 5000
+EXPOSE 5001
 
 # Automatically push database schema to postgres container on startup and start backend
 CMD ["sh", "-c", "npx prisma db push && npm run start"]

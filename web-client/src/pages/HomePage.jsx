@@ -87,7 +87,7 @@ export default function HomePage() {
       setErrorMessage(
         backendError ||
         (err.code === 'ECONNABORTED'
-          ? 'Connection to backend timed out. Please check if http://localhost:5000 is active.'
+          ? 'Connection to backend timed out. Please check if http://localhost:5001 is active.'
           : 'Unable to fetch comments from backend feed service. Please ensure backend and classifier are running.')
       );
       setFeedState('error');
@@ -121,7 +121,7 @@ export default function HomePage() {
       console.error('Single comment classification error:', err);
       const serverErr = err.response?.data?.error;
       const message = serverErr || (err.code === 'ECONNABORTED'
-        ? 'Connection timed out. Please verify that http://localhost:5000 is reachable.'
+        ? 'Connection timed out. Please verify that http://localhost:5001 is reachable.'
         : 'Unable to classify comment. Please verify that the backend and classifier are running.');
       setCustomError(message);
     } finally {

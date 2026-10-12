@@ -10,7 +10,7 @@ This project is organized as a monorepo consisting of three primary services bac
 
 ```
 SoftwareEngineering_Project/
-├── backend/             # Node.js + Express API + Prisma ORM (Port 5000)
+├── backend/             # Node.js + Express API + Prisma ORM (Port 5001)
 ├── classifier-service/  # Python + FastAPI + PyTorch / ML Models (Port 8000)
 ├── web-client/          # React 18 + Vite + Tailwind CSS Dashboard (Port 3000)
 └── docs/                # Software Engineering SRS, DFDs, and Architecture Specifications
@@ -22,7 +22,7 @@ SoftwareEngineering_Project/
 |---|---|---|---|
 | **Database** | PostgreSQL 14+ | `5432` | Stores users, TOTP credentials, audit logs, and classified tweet history |
 | **Classifier Service** | Python, FastAPI, PyTorch, Transformers | `8000` | Multi-label toxicity inference (`toxic`, `severe_toxic`, `obscene`, `threat`, `insult`, `identity_hate`) |
-| **Backend API** | Node.js, Express, Prisma ORM | `5000` | Auth & 2FA management, feed ingestion, classification orchestration, history persistence |
+| **Backend API** | Node.js, Express, Prisma ORM | `5001` | Auth & 2FA management, feed ingestion, classification orchestration, history persistence |
 | **Web Client** | React 18, Vite, Tailwind CSS, Lucide | `3000` | Responsive user dashboard, TOTP QR setup, live feed scanner, history auditing |
 
 ---
@@ -52,7 +52,7 @@ cp backend/.env.example backend/.env
 Configure your local database credentials and secrets:
 
 ```env
-PORT=5000
+PORT=5001
 
 # Local PostgreSQL Connection String (adjust user, password, and port if needed)
 DATABASE_URL=postgresql://postgres:your_password@localhost:5432/toxic_comments?schema=public
@@ -93,7 +93,7 @@ cp web-client/.env.example web-client/.env
 ```
 
 ```env
-VITE_API_URL=http://localhost:5000
+VITE_API_URL=http://localhost:5001
 ```
 
 ---
@@ -187,7 +187,7 @@ cd backend
    ```
 
 5. **Verify Backend is Running:**
-   Open [http://localhost:5000/api/health](http://localhost:5000/api/health) in your browser. It should respond with `{"status": "ok"}`.
+   Open [http://localhost:5001/api/health](http://localhost:5001/api/health) in your browser. It should respond with `{"status": "ok"}`.
 
 ---
 
