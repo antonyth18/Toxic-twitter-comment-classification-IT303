@@ -47,7 +47,9 @@ export default function Landing() {
             </h1>
 
             <p className="max-w-2xl mx-auto text-lg text-white/90 mb-10 leading-relaxed font-sans">
-              Real-time multi-label classification to detect harassment, threats, obscenity, and hate speech. Protected with two-factor authentication and enterprise activity logging.
+              <b>Real-time multi-label classification to detect harassment, threats, obscenity, and hate speech.</b>
+              <br></br>
+              Built by Anirudh Trichy, Antony Thaikadavil, K V Akash under the guidance of Prof. Jaidhar CD.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -142,7 +144,7 @@ export default function Landing() {
       {/* Footer */}
       <footer className="border-t border-white/20 py-8 px-4 text-center text-xs text-slate-600 font-medium relative z-10">
         <p>Toxic Twitter Comment Classification System &bull; IT303 Software Engineering</p>
-        <p className="mt-1">Anirudh Trichy, Antony Thaikadavil, KV Akash &bull; Under guidance of Prof. Jaidhar CD</p>
+        <p className="mt-1">Anirudh Trichy, Antony Thaikadavil, KV Akash &bull; Under guidance of Prof. Jaidhar CD &bull; &copy;</p>
       </footer>
     </div>
   );
