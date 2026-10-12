@@ -34,6 +34,12 @@ classifier-service/data/tokenized/
 classifier-service/tokenizer/
 classifier-service/model/checkpoints/
 classifier-service/model/distilbert-toxic/
+classifier-service/distilbert-toxic/
+distilbert-toxic/
+
+# Documentation working drafts
+docs/IT303_UserManual*.docx
+
 
 # IDE and OS files
 .idea/

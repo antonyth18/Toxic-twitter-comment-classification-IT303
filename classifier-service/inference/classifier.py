@@ -38,7 +38,20 @@ DEFAULT_THRESHOLD = 0.5
 DEFAULT_MAX_LENGTH = 256  # must match dataset/tokenize.py and model/train.py
 INFERENCE_BATCH_SIZE = 32
 
-DEFAULT_MODEL_DIR = Path(__file__).resolve().parent.parent / "model" / "distilbert-toxic"
+def _find_default_model_dir() -> Path:
+    service_root = Path(__file__).resolve().parent.parent
+    candidates = [
+        service_root / "model" / "distilbert-toxic",
+        service_root / "distilbert-toxic",
+        service_root.parent / "distilbert-toxic",
+    ]
+    for c in candidates:
+        if c.exists() and (c / "config.json").exists():
+            return c
+    return candidates[0]
+
+
+DEFAULT_MODEL_DIR = _find_default_model_dir()
 
 
 @dataclass

@@ -44,15 +44,6 @@ app.use('/api', authRoutes);
 app.use('/api', adminRoutes);
 app.use('/api', feedRoutes);
 
-// Protected Admin Placeholders
-app.get('/api/admin/users', authenticateToken, (req, res) => {
-  res.status(501).json({ message: "Endpoint under construction (Phase 2)" });
-});
-
-app.patch('/api/admin/users/:id', authenticateToken, (req, res) => {
-  res.status(501).json({ message: "Endpoint under construction (Phase 2)" });
-});
-
 // Only listen if executed directly (not when required by test runners)
 if (process.env.NODE_ENV !== 'test') {
   app.listen(port, () => {

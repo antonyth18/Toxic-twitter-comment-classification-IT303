@@ -76,4 +76,147 @@ router.get('/logs', authenticateToken, requireAdmin, async (req, res) => {
   }
 });
 
+/**
+ * GET /api/admin/users
+ * Retrieve all registered users with role and status. Admin only.
+ */
+router.get('/admin/users', authenticateToken, requireAdmin, async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        status: true,
+        created_at: true
+      },
+      orderBy: { created_at: 'asc' }
+    });
+
+    const formattedUsers = users.map((u) => ({
+      id: u.id,
+      email: u.email,
+      role: u.role,
+      status: u.status,
+      createdAt: u.created_at ? u.created_at.toISOString().split('T')[0] : 'N/A',
+      created_at: u.created_at
+    }));
+
+    return res.status(200).json({ users: formattedUsers });
+  } catch (error) {
+    return res.status(500).json({ error: 'Internal server error while fetching users.' });
+  }
+});
+
+/**
+ * PATCH /api/admin/users/:id/status
+ * Update user active/inactive account status. Admin only.
+ */
+router.patch('/admin/users/:id/status', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  if (!status || !['active', 'inactive', 'suspended'].includes(status)) {
+    return res.status(400).json({ error: 'Invalid status. Must be "active" or "inactive".' });
+  }
+
+  try {
+    const targetUser = await prisma.user.findUnique({
+      where: { id }
+    });
+
+    if (!targetUser) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    if (req.user.id === targetUser.id && (status === 'inactive' || status === 'suspended')) {
+      return res.status(400).json({ error: 'Cannot deactivate your own administrator account.' });
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: { status },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        status: true,
+        created_at: true
+      }
+    });
+
+    return res.status(200).json({
+      message: `User status updated to ${status}.`,
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        status: updatedUser.status,
+        createdAt: updatedUser.created_at ? updatedUser.created_at.toISOString().split('T')[0] : 'N/A'
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Internal server error while updating user status.' });
+  }
+});
+
+/**
+ * PATCH /api/admin/users/:id
+ * General user update endpoint for compatibility.
+ */
+router.patch('/admin/users/:id', authenticateToken, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  const { status, role } = req.body;
+
+  try {
+    const targetUser = await prisma.user.findUnique({ where: { id } });
+    if (!targetUser) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    const updateData = {};
+    if (status) {
+      if (!['active', 'inactive', 'suspended'].includes(status)) {
+        return res.status(400).json({ error: 'Invalid status.' });
+      }
+      if (req.user.id === targetUser.id && (status === 'inactive' || status === 'suspended')) {
+        return res.status(400).json({ error: 'Cannot deactivate your own administrator account.' });
+      }
+      updateData.status = status;
+    }
+
+    if (role) {
+      if (!['USER', 'ADMIN'].includes(role)) {
+        return res.status(400).json({ error: 'Invalid role.' });
+      }
+      updateData.role = role;
+    }
+
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: updateData,
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        status: true,
+        created_at: true
+      }
+    });
+
+    return res.status(200).json({
+      message: 'User updated successfully.',
+      user: {
+        id: updatedUser.id,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        status: updatedUser.status,
+        createdAt: updatedUser.created_at ? updatedUser.created_at.toISOString().split('T')[0] : 'N/A'
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ error: 'Internal server error while updating user.' });
+  }
+});
+
 module.exports = router;
