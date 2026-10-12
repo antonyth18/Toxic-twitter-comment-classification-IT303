@@ -1,13 +1,13 @@
-"""End-to-end check against the real trained model. Skipped when
-model/distilbert-toxic/ is absent (e.g. a fresh clone, since it isn't in git)."""
+"""End-to-end check against the real (ONNX) serving model. Skipped when
+model/distilbert-toxic-onnx/ is absent (run model/export_onnx.py to create it)."""
 
 import pytest
 
 from inference.classifier import DEFAULT_MODEL_DIR, ToxicityClassifier
 
 pytestmark = pytest.mark.skipif(
-    not (DEFAULT_MODEL_DIR / "model.safetensors").exists(),
-    reason="trained model not present at model/distilbert-toxic/",
+    not (DEFAULT_MODEL_DIR / "model.onnx").exists(),
+    reason="serving model not present at model/distilbert-toxic-onnx/",
 )
 
 

@@ -1,0 +1,11 @@
+venv/
+data/
+dataset/
+notebooks/
+tests/
+tokenizer/
+model/checkpoints/
+model/distilbert-toxic/
+__pycache__/
+.pytest_cache/
+.env
