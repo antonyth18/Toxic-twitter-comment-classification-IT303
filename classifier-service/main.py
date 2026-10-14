@@ -24,6 +24,25 @@ MAX_BATCH_SIZE = int(os.getenv("MAX_BATCH_SIZE", 100))
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000").split(",")
 
 
+SELF_CHECK_CLEAN = "Such an inspiring speech, really gives hope for the future."
+SELF_CHECK_TOXIC = "Get lost you filthy idiot, nobody wants you here."
+
+
+def run_self_check(classifier: ToxicityClassifier) -> bool:
+    """Sanity-check the loaded model on one obviously clean and one obviously
+    toxic comment. Catches numerically broken inference (e.g. quantized
+    kernels overflowing on a host CPU) that would otherwise label everything
+    the same way while /health still looked fine."""
+    clean, toxic = classifier.predict([SELF_CHECK_CLEAN, SELF_CHECK_TOXIC])
+    passed = clean.label == "normal" and toxic.label == "toxic"
+    if not passed:
+        logger.error(
+            "Model self-check FAILED: clean=%s %s, toxic=%s %s",
+            clean.label, clean.probabilities, toxic.label, toxic.probabilities,
+        )
+    return passed
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Load the model once per process. Tests pre-set app.state.classifier with
@@ -35,6 +54,7 @@ async def lifespan(app: FastAPI):
             # MPS/CUDA kernels now, instead of making the first real request time out.
             classifier.predict(["warm-up"])
             app.state.classifier = classifier
+            app.state.self_check = run_self_check(classifier)
             logger.info(
                 "Model loaded from %s on %s, max_length=%d, thresholds=%s",
                 MODEL_DIR, classifier.device, classifier.max_length, classifier.thresholds,
@@ -102,10 +122,12 @@ def run_prediction(request: Request, texts: List[str]) -> List[Prediction]:
 @app.get("/health")
 def health_check(request: Request):
     classifier = request.app.state.classifier
+    self_check = getattr(request.app.state, "self_check", None)
     return {
-        "status": "ok" if classifier is not None else "degraded",
+        "status": "ok" if classifier is not None and self_check is not False else "degraded",
         "service": "classifier-service",
         "model_loaded": classifier is not None,
+        "self_check_passed": self_check,
         "thresholds": classifier.thresholds if classifier is not None else None,
         "timestamp": utc_now(),
     }

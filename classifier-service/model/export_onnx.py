@@ -61,7 +61,12 @@ def export_fp32(source_dir: Path, onnx_path: Path) -> None:
 def quantize(fp32_path: Path, int8_path: Path) -> None:
     from onnxruntime.quantization import QuantType, quantize_dynamic
 
-    quantize_dynamic(str(fp32_path), str(int8_path), weight_type=QuantType.QInt8, per_channel=True)
+    # reduce_range: 7-bit weights. Full-range int8 overflows in onnxruntime's
+    # AVX2 (non-VNNI) kernels, which most x86 cloud hosts (e.g. Render) use --
+    # there every comment came out ~0.6 "toxic" while ARM Macs looked fine.
+    quantize_dynamic(
+        str(fp32_path), str(int8_path), weight_type=QuantType.QInt8, per_channel=True, reduce_range=True
+    )
 
 
 def compare(source_dir: Path, output_dir: Path, validation_csv: Path, n_samples: int) -> None:
